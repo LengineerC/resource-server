@@ -1,0 +1,79 @@
+@use "../../styles/global.scss" as *;
+
+.login-main{
+    @extend %flex-hv-center;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background-color: #eee;
+
+
+    .login-card{
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+
+        .form-container{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 450px;
+            width: 350px;
+
+            .form-item{
+                white-space: no-wrap;
+                
+                input{
+                    width: auto;
+                }
+            }
+        }
+
+        .protocol-chooser{
+            height: auto;
+            width: auto;
+            margin: 10px;
+            @extend %flex-hv-center;
+        }
+
+        .inputs-container{
+            width: 90%;
+            box-sizing: border-box;
+            margin-bottom: 50px;
+        }
+    }
+}
+
+@media screen and (max-width:$mobileMaxWidth){
+    .login-main{
+        .login-card{
+            .form-container{
+                height: 55vh;
+                width: 90vw;
+            }
+        }
+
+        .inputs-container{
+            .ant-form-item-row{
+                flex-wrap: nowrap;
+
+                .ant-form-item-label{
+                    flex-wrap: nowrap;
+                    flex: none !important;
+                    width: auto !important;
+        
+                    label{
+                        width: 100px;
+                    }
+                }
+
+                .ant-form-item-control{
+                    width: auto !important;
+                    flex: none !important;
+                }
+            }
+
+        }
+    }
+}

@@ -1,0 +1,100 @@
+@use "../../styles/global.scss" as *;
+@use "sass:color";
+
+.file-exploerer-main {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+
+    .navigator {
+        @extend %flex-hv-center;
+        flex-direction: column;
+        height: 70px;
+        width: auto;
+        background-color: #fff;
+        box-shadow: 0 2px 5px 2px #33333333;
+
+        .path-main {
+            @extend %flex-hv-center;
+            width: 100%;
+            height: 80%;
+
+            .icon-container {
+                @extend %flex-hv-center;
+                justify-content: space-between;
+                height: 100%;
+                width: auto;
+                box-sizing: border-box;
+                padding: 0 25px;
+
+                .back-btn {
+                    color: $themeColor;
+                    font-size: 20px;
+                    margin-right: 20px;
+                    cursor: pointer;
+                    transition: 0.2s;
+
+                    &:hover {
+                        color: color.mix($themeColor, #ffffff, 90%)
+                    }
+
+                    &:active {
+                        color: color.mix($themeColor, #000, 95%)
+                    }
+                }
+            }
+
+            .path-container {
+                @extend %flex-hv-center;
+                justify-content: flex-start;
+                height: 100%;
+                width: 90%;
+                padding-right: 10px;
+                -webkit-user-select: none;
+                overflow-x: scroll;
+
+                &::-webkit-scrollbar {
+                    height: 5px;
+                }
+
+                &::-webkit-scrollbar-track {
+                    background: none;
+                    border-radius: 100px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    background: #aaaaaa66;
+                    border-radius: 100px;
+                }
+
+                &::-webkit-scrollbar-thumb:active {
+                    background: #aaaaaa99;
+                }
+
+                .folder {
+                    color: $themeColor;
+                    cursor: pointer;
+                    font-size: 20px;
+                    font-weight: bold;
+                    margin: 0 3px;
+
+                    &:hover {
+                        color: color.mix($themeColor, #ffffff, 90%)
+                    }
+
+                    &:active {
+                        color: color.mix($themeColor, #000, 95%)
+                    }
+                }
+
+                .divider {
+                    color: #aaa;
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+            }
+
+        }
+    }
+}

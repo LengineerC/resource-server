@@ -1,0 +1,1 @@
+export const LOCAL_URL:string="http://localhost:7500";

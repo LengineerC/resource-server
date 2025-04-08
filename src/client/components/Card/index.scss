@@ -1,0 +1,19 @@
+@use "../../styles/global.scss" as *;
+
+.card-main{
+    display: flex;
+    padding: 8px 10px;
+    height: auto;
+    width: auto;
+    border-radius: 5px;
+    flex: 0;
+    box-shadow: 2px 2px 5px #00000022;
+    background-color: #FCFCFC;
+    transition: 0.5s;
+    outline: 1px solid #00000022;
+    box-sizing: border-box;
+
+    &:hover{
+        outline: 1px solid $themeColor;
+    }
+}
