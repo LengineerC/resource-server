@@ -70,7 +70,11 @@
 
                 .ant-form-item-control{
                     width: auto !important;
-                    flex: none !important;
+                    flex: 1 !important;
+
+                    input{
+                        width: 100%;
+                    }
                 }
             }
 
