@@ -46,7 +46,11 @@ if(process.env.NODE_ENV!=="development"){
 new ConfigController(app);
 new FTPController(app);
 
-const server=app.listen(PORT,()=>{
+app.listen(PORT,(err)=>{
+    if(err){
+        logger.error("Start server error:",err.message);
+        return;
+    }
+
     logger.info(`App listening on port ${PORT}!`);
-    
 });

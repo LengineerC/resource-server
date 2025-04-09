@@ -17,3 +17,10 @@ export function logout(){
         method:"GET"
     });
 }
+
+export function ls(params:{path:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.LS),{
+        method:"GET",
+        params
+    });
+}

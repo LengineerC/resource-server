@@ -1,5 +1,5 @@
 import axios from "axios";
-import { LOCAL_URL } from "./ip";
+import { BASE_URL } from "./ip";
 import { Response } from "../../../public/types/common";
 
 type Option={
@@ -10,9 +10,9 @@ type Option={
 export default function request(url:string,option:Option):Promise<Response>|undefined{
     const {method,params}=option;
     let requestUrl=
-        (LOCAL_URL[LOCAL_URL.length-1]==='/'?
-            LOCAL_URL.substring(0,LOCAL_URL.length-1):
-            LOCAL_URL)
+        (BASE_URL[BASE_URL.length-1]==='/'?
+            BASE_URL.substring(0,BASE_URL.length-1):
+            BASE_URL)
             +url;
 
     if(method==='GET'){

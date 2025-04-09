@@ -7,7 +7,7 @@ import {
  } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { useState } from "react";
-import { clearUserState } from "../../redux/slices/userSlice";
+import { clearUserState } from "../../redux/slices/connectSlice";
 import { logout } from "../../services/ftpService";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +17,7 @@ export default function Header() {
   const navigate=useNavigate();
   const dispatch=useAppDispatch();
   const [showOptions,setShowOptions]=useState<boolean>(false);
-  const config=useAppSelector(s=>s.user);
+  const connect=useAppSelector(s=>s.connect);
 
   const disconnect=()=>{
     dispatch(clearUserState());
@@ -38,7 +38,7 @@ export default function Header() {
             }}
           />
           <div className="info">
-            {config.protocol?.toUpperCase() || "Unknown".toUpperCase()}
+            {connect.protocol?.toUpperCase() || "Unknown".toUpperCase()}
           </div>
         </div>
         
@@ -52,14 +52,14 @@ export default function Header() {
             }}
           />
           <div className="info">
-            {config.config?.host || "Not connected"}
+            {connect.config?.host || "Not connected"}
           </div>
         </div>
       </div>
 
       <div className="user-container">
         <div className="username">
-          {config.config?.user || "user"}
+          {connect.config?.user || "user"}
         </div>
         
         <div 

@@ -1,5 +1,5 @@
 import { login } from "../../services/ftpService";
-import Card from "../../components/Card/Card";
+import { Card } from "../../components";
 import { Button, Form, FormProps, Input, message, Radio, Spin } from "antd";
 import { CheckboxGroupProps } from "antd/es/checkbox";
 import { PROTOCOL } from "../../../public/utils/enums";
@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { FTPConfig } from "../../../public/types/common";
 import RESPONSE_CODE from "../../../public/utils/codes";
 import { useNavigate } from "react-router-dom";
-import { saveUserState } from "../../redux/slices/userSlice"
+import { saveUserState } from "../../redux/slices/connectSlice"
 import { useEffect, useState } from "react";
 import { getConfig } from "../../services/configService";
 
@@ -23,7 +23,7 @@ export default function Login() {
   const navigate=useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const dispatch=useAppDispatch();
-  const uc=useAppSelector(s=>s.user);
+  const connect=useAppSelector(s=>s.connect);
   const [form]=Form.useForm<FTPFieldType>();
   
   const [loading,setLoading]=useState<boolean>(false);
@@ -46,15 +46,15 @@ export default function Login() {
   },[]);
 
   useEffect(()=>{
-    if(uc.config && uc.protocol){
-      const {config,protocol}=uc;
+    if(connect.config && connect.protocol){
+      const {config,protocol}=connect;
       form.setFieldsValue({
         ...config,
         protocol
       });
     }
 
-  },[uc])
+  },[connect])
 
   const onFinish:FormProps<FTPFieldType>["onFinish"]=values=>{
     setLoading(true);

@@ -1,4 +1,5 @@
 import RESPONSE_CODE from "../utils/codes";
+import { FTP_RESOURCE_TYPE } from "../utils/enums";
 
 export type Config={
     ftp:FTPConfig,
@@ -16,3 +17,21 @@ export type Response={
     msg:null|string,
     data:any
 };
+
+export type Permission={
+    read:boolean,
+    write:boolean,
+    exec:boolean
+}
+
+export type FTPResource={
+    name: string,
+    type: FTP_RESOURCE_TYPE,
+    time: number,
+    size: string,
+    owner: string,
+    group: string,
+    userPermissions: Permission,
+    groupPermissions: Permission,
+    otherPermissions: Permission
+}

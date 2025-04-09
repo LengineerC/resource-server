@@ -20,9 +20,9 @@ export default class FTPController{
   }
 
   private createRequestListeners(){
-    const {BASE}=FTP_REQUEST_PATHS;
+    const {BASE,LOGIN,LOGOUT,LS}=FTP_REQUEST_PATHS;
 
-    this.app.post(createUrl(BASE,FTP_REQUEST_PATHS.LOGIN),async(req,res)=>{
+    this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
         let config=FileTools.readJson(CONFIG_FILE);
         config.ftp={
@@ -43,12 +43,22 @@ export default class FTPController{
       }
     });
 
-    this.app.get(createUrl(BASE,FTP_REQUEST_PATHS.LOGOUT),async(_,res)=>{
+    this.app.get(createUrl(BASE,LOGOUT),async(_,res)=>{
       try{
         await this.ftp?.quit();
         res.send(ResponseCreator.success(null,"Quited"));
       }catch(err){
         res.send(ResponseCreator.error(null,"Failed to quit"));
+      }
+    });
+
+    this.app.get(createUrl(BASE,LS),async(req,res)=>{
+      const {path}=req.query;
+      if(typeof path==="string"){
+        const resources=await this.ftp?.ls(path);
+        res.send(ResponseCreator.success(resources));
+      }else{
+        res.send(ResponseCreator.error(null,"TypeError: path is not a string!"));
       }
     });
   }

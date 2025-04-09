@@ -1,9 +1,9 @@
 import { RouteObject } from "react-router-dom";
-import { lazy } from "react";
+// import { lazy } from "react";
+import { Main } from "../components";
 
-import Login from "../pages/Login/Login";
-import Main from "../components/Main/Main";
-import Home from "../pages/Home/Home";
+import Login from "../pages/Login";
+import Home from "../pages/Home";
 
 
 const router:RouteObject[]=[

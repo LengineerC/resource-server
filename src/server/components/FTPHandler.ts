@@ -1,7 +1,8 @@
 import jsftp,{ JsftpOpts } from "jsftp";
 import logger from "../log4js/logger";
-import RESPONSE_CODE from "../../public/utils/codes";
 import ResponseCreator from "../response/ResponseCreator";
+import { FTPResource } from "../../public/types/common";
+import { Socket } from "net";
 
 export default class FTPHandler{
     private option:JsftpOpts;
@@ -38,22 +39,41 @@ export default class FTPHandler{
         try{
             logger.info(`Start to connect server: ${this.option.host} with user: ${this.option.user}`);
             this.ftp=await this.createFtpClient();
-
+            this.ftp?.keepAlive(60000);
             return ResponseCreator.success(null,"Connected!");
         }catch(err:any){
+            logger.error("Failed to connect",err.message);
             return ResponseCreator.error(null,err.message);
         }
     }
 
-    public ls(path:string){
+    public ls(path:string):Promise<FTPResource[]>{
         return new Promise((resolve,reject)=>{
+            if(!this.ftp){
+                reject(new Error("ftp is null"));
+            }
+
             this.ftp?.ls(path,(err,res)=>{
                 if(err){
                     logger.error("Excute ls failed:",err);
                     reject(err);
                 }
 
-                resolve(res);
+                logger.info("Fetched path: "+path);
+                resolve(res as unknown as FTPResource[]);
+            });
+        });
+    }
+
+    public get(path:string):Promise<Socket>{
+        return new Promise((resolve,reject)=>{
+            this.ftp?.get(path,(err,data)=>{
+                if(err){
+                    logger.error(`Get ${path} error:`,err.message);
+                    reject(err);
+                }
+
+                resolve(data);
             });
         });
     }
@@ -65,7 +85,7 @@ export default class FTPHandler{
                     logger.error("Fail to quit:",err);
                     reject(err);
                 }
-    
+                this.ftp?.destroy();
                 logger.info("Quit");
                 resolve(null);
             });

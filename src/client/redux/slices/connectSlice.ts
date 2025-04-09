@@ -2,12 +2,12 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { PROTOCOL } from "../../../public/utils/enums";
 import { FTPConfig } from "../../../public/types/common";
 
-type UserState={
+export type ConnectState={
     protocol:null|PROTOCOL,
     config:null | FTPConfig,
 }
 
-const initialState:UserState={
+const initialState:ConnectState={
     protocol:null,
     config:null,
 }
@@ -16,7 +16,7 @@ const userSlice=createSlice({
     name: "user",
     initialState,
     reducers: {
-        saveUserState(state,action:PayloadAction<UserState>){
+        saveUserState(state,action:PayloadAction<ConnectState>){
             const {payload}=action;
             state.protocol=payload.protocol;
             state.config=payload.config;

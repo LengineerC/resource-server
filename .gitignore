@@ -4,6 +4,6 @@ dist/
 release/
 log/
 node_modules/
-
+__test__/download/
 
 config.json
