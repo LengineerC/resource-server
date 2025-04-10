@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { ReactNode, useEffect } from "react";
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -7,14 +7,15 @@ import {
   faFolderOpen,
   faFolderPlus,
   faTrashCan,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FTPResource } from "../../../public/types/common";
-import { Popover, Spin } from "antd";
-import { ls } from "../../services/ftpService";
+import { Image, Popover, Spin } from "antd";
+import { ls, preview } from "../../services/ftpService";
 import useMessage from "antd/es/message/useMessage";
 import RESPONSE_CODE from "../../../public/utils/codes";
 import ResourceContainer from "./ResourceContainer";
-import { FTP_RESOURCE_TYPE } from "../../../public/utils/enums";
+import { FILE_TYPE, FTP_RESOURCE_TYPE } from "../../../public/utils/enums";
 
 import "./index.scss";
 
@@ -310,16 +311,22 @@ const testData:FTPResource[]=[
 export default function FileExplorer() {
   const [messageApi,contextHolder]=useMessage();
 
-  const [path,setPath]=useState<string>("./CR");
-  const [resources,setResources]=useState<FTPResource[]>(testData);
+  const [path,setPath]=useState<string>(".");
+  const [resources,setResources]=useState<FTPResource[]>([]);
+  // const [resources,setResources]=useState<FTPResource[]>(testData);
   const [selectedResources,setSelectedResources]=useState<FTPResource[]>([]);
   const [loading,setLoading]=useState<boolean>(false);
+  const [showPreview,setShowPreview]=useState<boolean>(false);
+  const [previewElem,setPreviewElem]=useState<ReactNode>(
+    <></>
+  );
+  const [objectUrl,setObjectUrl]=useState<string|null>();
 
   useEffect(()=>{
     setLoading(true);
     setSelectedResources([]);
     ls({path:path})
-    ?.then(res=>{
+    .then(res=>{
       const {code,data}=res;
       if(code===RESPONSE_CODE.SUCCESS){
         setResources(data);
@@ -343,7 +350,7 @@ export default function FileExplorer() {
     const folders=path.split("/").filter(p=>p!=='');
     if(folders.length>1){
       folders.pop();
-      setPath(folders.join("/"))
+      setPath(folders.join("/"));
     }
   }
 
@@ -363,6 +370,66 @@ export default function FileExplorer() {
     });
   }
 
+  const handlePreview=async(path:string)=>{
+    const response=await preview({path});
+    // console.log("response",response)
+    const blob=response.data;
+    const contentType=response.headers["content-type"];
+    // console.log("contentType",contentType)
+    let contentTypeArr=contentType?.toString().split("/");
+
+    if(contentTypeArr && contentTypeArr?.length>0){
+      const fileType=contentTypeArr.shift();
+      // console.log("fileType",fileType);
+
+      switch(fileType){
+        case FILE_TYPE.IMAGE:{
+          const url=URL.createObjectURL(blob);
+          setObjectUrl(url);
+          setPreviewElem(
+            <Image 
+              src={url}
+            />
+          );
+          break;
+        }
+
+        case FILE_TYPE.VIDEO:{
+          const url=URL.createObjectURL(blob);
+          setObjectUrl(url);
+          setPreviewElem(
+            <video 
+              src={url} 
+              controls
+            >
+              Loading video...
+            </video>
+          );
+          break;
+        }
+
+        case FILE_TYPE.TEXT:
+          await blob.text()
+          .then(v=>{
+            setPreviewElem(
+              <textarea 
+                disabled 
+                className="text-displayer" 
+                value={v}
+              />
+            );
+          }).catch(err=>{
+            console.error("Failed to read blob:",err);
+          });
+  
+          break;
+
+        default:
+          break;
+      }
+    }
+  }
+
   const onResourceSelect=(resource:FTPResource)=>{
     setSelectedResources(prev=>[...prev,resource]);
   }
@@ -372,7 +439,18 @@ export default function FileExplorer() {
   const onDoubleClick=(resource:FTPResource,path:string)=>{
     if(resource.type===FTP_RESOURCE_TYPE.DIR){
       setPath(path);
+    }else if(resource.type===FTP_RESOURCE_TYPE.FILE){
+      setShowPreview(true);
+      handlePreview(path);
     }
+  }
+
+  const onPreviewClose=()=>{
+    setShowPreview(false);
+    if(objectUrl){
+      URL.revokeObjectURL(objectUrl);
+    }
+    setPreviewElem(<></>);
   }
 
   const createResourceContainers=()=>resources.map((resource,i)=>{
@@ -407,6 +485,22 @@ export default function FileExplorer() {
       className="file-exploerer-main"
     >
       {contextHolder}
+
+      {showPreview && (
+        <div className="preview">
+          <div className="close-btn">
+            <FontAwesomeIcon
+              icon={faXmark}
+              onClick={onPreviewClose}
+            />
+          </div>
+
+          <div className="preview-container">
+            {previewElem}
+          </div>
+        </div>
+      )}
+
       <Spin 
         spinning={loading}
         fullscreen

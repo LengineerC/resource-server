@@ -42,6 +42,8 @@ export default function Login() {
 
     }).catch(err=>{
       console.error("Failed to fetch config:",err);
+    }).finally(()=>{
+      setLoading(false);
     });
   },[]);
 
@@ -79,6 +81,11 @@ export default function Login() {
           }
     
           setLoading(false);
+        }).catch(err=>{
+          console.error("Failed to login!",err);
+          messageApi.error("Failed to login!");
+        }).finally(()=>{
+          setLoading(false);
         });
 
         break;
@@ -86,6 +93,7 @@ export default function Login() {
 
       default:
         messageApi.error("Invalid protocol!");
+        setLoading(false);
     }
   }
 

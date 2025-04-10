@@ -4,6 +4,8 @@ export enum FTP_REQUEST_PATHS{
     LOGOUT="logout",
     LS="ls",
     GET="get",
+
+    PREVIEW="preview",
 };
 
 export enum CONFIG_REQUEST_PATHS{

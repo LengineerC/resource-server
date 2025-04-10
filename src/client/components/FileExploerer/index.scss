@@ -1,11 +1,108 @@
 @use "../../styles/global.scss" as *;
 @use "sass:color";
 
+
 .file-exploerer-main {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100%;
+    // height: 100%;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    // flex: 1;
+    // border: 2px solid #000;
+
+    .preview{
+        @extend %flex-hv-center;
+        flex-direction: column;
+        position: absolute;
+        background-color: #00000011;
+        backdrop-filter: blur(10px);
+        box-sizing: border-box;
+        height: 100%;
+        width: 100%;
+        z-index: 100;
+
+        .close-btn{
+            $size:35px;
+            @extend %flex-hv-center;
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-size: 30px;
+            color: color.adjust($textColor1,$alpha:-0.7);
+            width: $size;
+            height: $size;
+            transition: 0.1s;
+            border-radius: 50%;
+
+            &:hover{
+                background-color: #66666666;
+                color: #ffffffcc;
+            }
+        }
+
+        .preview-container{
+            @extend %flex-hv-center;
+            width: 60%;
+            height: 80%;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            border-radius: 5px;
+            background-color: #ffffff33;
+            box-shadow: 0 0 5px 2px #33333333;
+
+            .text-displayer{
+                padding: 7px;
+                color: $textColor1;
+                font-size: 14px;
+                box-sizing: border-box;
+                width: 100%;
+                height: 100%;
+                overflow-y: auto;
+                overflow-x: hidden;
+                white-space: break-spaces;
+                background-color: #fcfcfcaa;
+
+                &::-webkit-scrollbar {
+                    width: 5px;
+                }
+
+                &::-webkit-scrollbar-track {
+                    background: none;
+                    border-radius: 100px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    background: #aaaaaa66;
+                    border-radius: 100px;
+                }
+
+                &::-webkit-scrollbar-thumb:active {
+                    background: #aaaaaa99;
+                }
+            }
+
+            .ant-image{
+                width: 100%;
+                height: 100%;
+
+                img{
+                    object-fit: contain;
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+
+            video{
+                object-fit: contain;
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
 
     .navigator {
         @extend %flex-hv-center;
@@ -79,6 +176,8 @@
                     font-size: 20px;
                     font-weight: bold;
                     margin: 0 3px;
+                    width: auto;
+                    white-space: nowrap;
 
                     &:hover {
                         color: color.mix($themeColor, #ffffff, 90%)
@@ -100,15 +199,16 @@
     }
 
     .resources{
+        // position: absolute;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         background: color.adjust($themeColor, $alpha:-0.9);
-        // height: 100%;
-        flex: 1;
+        height: 100%;
+        // flex: 1;
         max-height: 100%;
         min-height: 0;
-        width: auto;
+        width: 100%;
 
         .options{
             display: flex;
@@ -154,9 +254,10 @@
             display: flex;
             background-color: #ffffff66;
             // flex: 1;
+            height: 100%;
             overflow-y: auto;
             box-sizing: border-box;
-            height: 87%;
+            height: 100%;
             flex-direction: column;
             min-height: 0;
             padding: 5px 10px;
@@ -181,4 +282,18 @@
             }
         }
     }
+}
+
+
+@media screen and (max-width:$mobileMaxWidth) {
+    .file-exploerer-main{
+
+        .preview{
+
+            .preview-container{
+                width: 90%;
+            }
+        }
+    }
+    
 }

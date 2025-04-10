@@ -61,7 +61,7 @@ export default function ResourceContainer(props:Props) {
       if(KB<1024) return `${KB.toFixed(1)} KB`;
 
       const MB=KB/1024;
-      if(MB<1024) return `${KB.toFixed(1)} MB`;
+      if(MB<1024) return `${MB.toFixed(1)} MB`;
 
       const GB=MB/1024;
       if(GB<1024) return `${GB.toFixed(1)} GB`;

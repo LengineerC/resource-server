@@ -2,7 +2,7 @@ import RESPONSE_CODE from "../../public/utils/codes";
 import { Response } from "../../public/types/common";
 
 export default class ResponseCreator{
-    static success(data:any,msg:string|null=null):Response{
+    public static success(data:any,msg:string|null=null):Response{
         return {
             code:RESPONSE_CODE.SUCCESS,
             msg,
@@ -10,7 +10,7 @@ export default class ResponseCreator{
         };
     }
 
-    static error(data:any,msg:string|null=null):Response{
+    public static error(data:any,msg:string|null=null):Response{
         return {
             code:RESPONSE_CODE.ERROR,
             msg,

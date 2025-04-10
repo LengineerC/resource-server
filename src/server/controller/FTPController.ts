@@ -8,8 +8,10 @@ import { CONFIG_FILE } from "../utils/constants";
 import FTPHandler from "../components/FTPHandler";
 import RESPONSE_CODE from "../../public/utils/codes";
 import { Response } from "../../public/types/common";
+import { createContentType } from "../utils/functions";
 
 export default class FTPController{
+  private MAX_PREVIEW_SIZE=50*1024*1024;
   private app:Express;
   private ftp:FTPHandler|null;
 
@@ -20,7 +22,7 @@ export default class FTPController{
   }
 
   private createRequestListeners(){
-    const {BASE,LOGIN,LOGOUT,LS}=FTP_REQUEST_PATHS;
+    const {BASE,LOGIN,LOGOUT,LS,PREVIEW}=FTP_REQUEST_PATHS;
 
     this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
@@ -59,6 +61,46 @@ export default class FTPController{
         res.send(ResponseCreator.success(resources));
       }else{
         res.send(ResponseCreator.error(null,"TypeError: path is not a string!"));
+      }
+    });
+
+    this.app.get(createUrl(BASE,PREVIEW),async(req,res)=>{
+      try{
+        const {path}=req.query;
+        
+        if(typeof path==="string"){
+          const decodingPath=decodeURIComponent(path);
+          const fileInfo=await this.ftp?.ls(decodingPath);
+          
+          if(!fileInfo || fileInfo.length===0){
+            res.send(ResponseCreator.error(null,"File not exists"));
+            return;
+          }
+          if(Number(fileInfo[0].size)>this.MAX_PREVIEW_SIZE){
+            logger.info(`File ${decodingPath} is too big to preview`);
+            res.send(ResponseCreator.error(Number(fileInfo[0].size),"File is too big to preview"));
+            return;
+          }
+
+          res.setHeader("Content-Type",createContentType(decodingPath));
+          res.setHeader("Cache-Control","no-cache");
+          res.setHeader("Connection","keep-alive");
+
+          const socket=await this.ftp?.get(decodingPath);
+          if(socket){
+            socket.on("end",()=>{
+              logger.info(`FTP preload ${path} finished`);
+            });
+
+            socket.pipe(res);
+          }
+        }else{
+          logger.error("Error params to /ftp/preview");
+          res.send(ResponseCreator.error(null,"Error params to /ftp/preview"));
+        }
+      }catch(err){
+        logger.error("Error to preload",req.query.path);
+        res.send(ResponseCreator.error(null,"Error to preload"));
       }
     });
   }

@@ -13,11 +13,11 @@ const ftp=new FTPHandler({
 
 async function main() {
     await ftp.connect();
-    // const res=await ftp.ls('/CR');
-    // console.log(res);
-    const socket=await ftp.get("./lengineerc/courses/db/exam/大题解题方法.pdf");
-    const stream=fs.createWriteStream(path.resolve(process.cwd(),"./__test__/download/大题解题方法.pdf"));
-    socket.pipe(stream);
+    const res=await ftp.ls("./lengineerc/courses/db/exam/大题解题方法.pdf");
+    console.log(res);
+    // const socket=await ftp.get("./lengineerc/courses/db/exam/大题解题方法.pdf");
+    // const stream=fs.createWriteStream(path.resolve(process.cwd(),"./__test__/download/大题解题方法.pdf"));
+    // socket.pipe(stream);
 
     await ftp.quit();
 }
