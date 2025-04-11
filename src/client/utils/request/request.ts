@@ -8,7 +8,7 @@ type Option={
     responseType?:'json' | 'blob' | 'arraybuffer' | 'text' | 'stream'
 }
 
-export default function request(url:string,option:Option,getFullResponse:boolean=false):Promise<axios.AxiosResponse|Response|Blob|ArrayBuffer|string>|undefined{
+export default function request(url:string,option:Option,getFullResponse:boolean=false):Promise<axios.AxiosResponse|Response<any>|Blob|ArrayBuffer|string>|undefined{
     const {method,params}=option;
     let requestUrl=
         (BASE_URL[BASE_URL.length-1]==='/'?

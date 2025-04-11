@@ -2,7 +2,9 @@ import RESPONSE_CODE from "../utils/codes";
 import { FTP_RESOURCE_TYPE } from "../utils/enums";
 
 export type Config={
-    ftp:FTPConfig,
+    ftp:{
+        connection:FTPConfig
+    },
 }
 
 export type FTPConfig={
@@ -12,10 +14,10 @@ export type FTPConfig={
     pass:string,
 }
 
-export type Response={
+export type Response<T>={
     code:RESPONSE_CODE,
     msg:null|string,
-    data:any
+    data:T
 };
 
 export type Permission={

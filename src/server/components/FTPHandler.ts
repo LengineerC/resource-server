@@ -49,8 +49,7 @@ export default class FTPHandler{
 
     public ls(path:string):Promise<FTPResource[]>{
         return new Promise((resolve,reject)=>{
-            console.log(path);
-            
+            // console.log(path);
             this.ftp?.ls(path,(err,res)=>{
                 if(err){
                     logger.error("Excute ls failed:",err);

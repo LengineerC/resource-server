@@ -412,7 +412,7 @@ export default function FileExplorer() {
     
     if(/application\/json/g.test(contentType)){
       const jsonString=await blob.text();
-      const res:Response=JSON.parse(jsonString);
+      const res=JSON.parse(jsonString);
       onPreviewClose();
       messageApi.error(res.msg);
       return;
@@ -563,16 +563,52 @@ export default function FileExplorer() {
   const handleDownload=async(resource:FTPResource)=>{
     const resourcePath=getResourcePath(resource.name);
     setCurrentResource(null);
-    const response=await download({path:resourcePath});
-    
-    const url=URL.createObjectURL(response);
-    const link=document.createElement("a");
-    link.href=url;
-    link.setAttribute("download",resource.name);
-    contextMenuRef.current!.appendChild(link);
-    link.click();
-    URL.revokeObjectURL(url);
+    if(mainRef.current){
+      const response=await download({path:resourcePath});
+      
+      const url=URL.createObjectURL(response);
+      const link=document.createElement("a");
+      link.href=url;
+      link.setAttribute("download",resource.name);
+      mainRef.current!.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   }
+
+  const handleDownloadBatch = async () => {
+    const hasDirectories = selectedResources.some(r => r.type === FTP_RESOURCE_TYPE.DIR);
+    
+    if (hasDirectories) {
+      messageApi.warning("Cannot download directories!");
+      return;
+    }
+  
+    const files = selectedResources.filter(r => r.type === FTP_RESOURCE_TYPE.FILE);
+    
+    if (files.length === 0) {
+      messageApi.warning("No files selected!");
+      return;
+    }
+  
+    try {
+      messageApi.info(`Starting download of ${files.length} files...`);
+      
+      for (const file of files) {
+        try {
+          await handleDownload(file); 
+          messageApi.success(`Download started: ${file.name}`);
+        } catch (err) {
+          console.error(`Failed to download ${file.name}:`, err);
+          messageApi.error(`Failed to download ${file.name}`);
+        }
+      }
+  
+      messageApi.success("All downloads initiated!");
+    } catch (globalErr) {
+      console.error("Batch download failed:", globalErr);
+    }
+  };
 
   const createResourceContainers=()=>resources.map(resource=>{
     const {
@@ -701,7 +737,7 @@ export default function FileExplorer() {
               icon={faDownload}
               className={`btn ${selectedResources.length===0 && "disabled"}`}
               onClick={
-                selectedResources.length===0?()=>{}:()=>{}
+                selectedResources.length===0?()=>{}:handleDownloadBatch
               }
             />
 

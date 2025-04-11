@@ -18,10 +18,12 @@ app.use(express.urlencoded({extended:true}));
 let PORT=7500;
 let initConfig:Config={
     ftp:{
-        host:"",
-        port:21,
-        user:"",
-        pass:""
+        connection:{
+            host:"",
+            port:21,
+            user:"",
+            pass:""
+        }
     },
 };
 

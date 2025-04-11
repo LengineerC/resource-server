@@ -32,10 +32,11 @@ export default function Login() {
     getConfig()
     ?.then(res=>{
       const {data,code}=res;
-      const {ftp}=data;
+      
       if(code===RESPONSE_CODE.SUCCESS){
+        const {ftp:{connection}}=data;
         dispatch(saveUserState({
-          config:ftp,
+          config:connection,
           protocol:PROTOCOL.FTP
         }));
       }

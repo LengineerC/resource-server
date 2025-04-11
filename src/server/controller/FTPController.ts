@@ -7,20 +7,55 @@ import FileTools from "../components/FileTools";
 import { CONFIG_FILE } from "../utils/constants";
 import FTPHandler from "../components/FTPHandler";
 import RESPONSE_CODE from "../../public/utils/codes";
-import { Response } from "../../public/types/common";
+import { Config, FTPConfig, Response } from "../../public/types/common";
 import { createContentType } from "../utils/functions";
 import { FILE_TYPE } from "../../public/utils/enums";
 import path from "path";
 
 export default class FTPController{
   private MAX_PREVIEW_SIZE=50*1024*1024;
+  private MAX_POOL_SIZE=3;
   private app:Express;
-  private ftp:FTPHandler|null;
+  private ftpPool:FTPHandler[];
+  private config:FTPConfig;
 
   constructor(app:Express){
     this.app=app;
-    this.ftp=null;
+    this.ftpPool=[];
+    this.config={
+      host:"",
+      port:21,
+      user:"",
+      pass:"",
+    };
     this.createRequestListeners();
+  }
+
+  private async getFtp():Promise<Response<FTPHandler|null>>{
+    if(this.ftpPool.length<this.MAX_POOL_SIZE){
+      const ftp=new FTPHandler(this.config);
+      const response=await ftp.connect();
+      if(response.code===RESPONSE_CODE.SUCCESS){
+        this.ftpPool.push(ftp);
+        logger.info(`Created FTP connection, current pool size: ${this.ftpPool.length}`);
+        return ResponseCreator.success<FTPHandler>(ftp);
+      }else{
+        return ResponseCreator.error(null);
+      }
+    }
+
+    return ResponseCreator.success<FTPHandler>(this.ftpPool[Math.floor(Math.random() * this.MAX_POOL_SIZE)]);
+  }
+
+  private async releaseFtp(ftp:FTPHandler){
+    try{
+      await ftp.quit();
+      this.ftpPool = this.ftpPool.filter(conn => conn !== ftp);
+      logger.info("FTP connection released");
+    }catch(err){
+      logger.error("Error to release FTP connection",err);
+      this.ftpPool = this.ftpPool.filter(conn => conn !== ftp);
+    }
   }
 
   private createRequestListeners(){
@@ -28,13 +63,13 @@ export default class FTPController{
 
     this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
-        let config=FileTools.readJson(CONFIG_FILE);
-        config.ftp={
+        const savedConfig=FileTools.readJson(CONFIG_FILE) as Config;
+        this.config={
           ...req.body
         };
-        FileTools.writeJson(CONFIG_FILE,config);
-        this.ftp=new FTPHandler(req.body);
-        const response:Response=await this.ftp.connect();
+        savedConfig.ftp.connection=this.config;
+        FileTools.writeJson(CONFIG_FILE,savedConfig);
+        const response=await this.getFtp();
         if(response.code===RESPONSE_CODE.SUCCESS){
           res.send(ResponseCreator.success(null,response.msg));
         }else{
@@ -49,9 +84,13 @@ export default class FTPController{
 
     this.app.get(createUrl(BASE,LOGOUT),async(_,res)=>{
       try{
-        await this.ftp?.quit();
+        await Promise.all(this.ftpPool.map(c=>{
+          c.quit();
+        }));
+        this.ftpPool=[];
         res.send(ResponseCreator.success(null,"Quited"));
       }catch(err){
+        this.ftpPool=[];
         res.send(ResponseCreator.error(null,"Failed to quit"));
       }
     });
@@ -59,7 +98,8 @@ export default class FTPController{
     this.app.get(createUrl(BASE,LS),async(req,res)=>{
       const {path}=req.query;
       if(typeof path==="string"){
-        const resources=await this.ftp?.ls(path);
+        const ftp=(await this.getFtp()).data;
+        const resources=await ftp?.ls(path);
         res.send(ResponseCreator.success(resources));
       }else{
         res.send(ResponseCreator.error(null,"TypeError: path is not a string!"));
@@ -72,7 +112,8 @@ export default class FTPController{
         
         if(typeof filePath==="string"){
           const decodingPath=decodeURIComponent(filePath);
-          const fileInfo=await this.ftp?.ls(decodingPath);
+          const ftp=(await this.getFtp()).data;
+          const fileInfo=await ftp?.ls(decodingPath);
           
           if(!fileInfo || fileInfo.length===0){
             res.send(ResponseCreator.error(null,"File not exists"));
@@ -95,7 +136,7 @@ export default class FTPController{
           res.setHeader("Cache-Control","no-cache");
           res.setHeader("Connection","keep-alive");
 
-          const socket=await this.ftp?.get(decodingPath);
+          const socket=await ((await this.getFtp()).data)?.get(decodingPath);
           if(socket){
             socket.on("end",()=>{
               logger.info(`FTP preload ${filePath} finished`);
@@ -120,7 +161,7 @@ export default class FTPController{
       try{
         if(typeof filePath==="string"){
           const decodingPath=decodeURIComponent(filePath);
-          const fileInfo=await this.ftp?.ls(decodingPath);
+          const fileInfo=await ((await this.getFtp()).data)?.ls(decodingPath);
           
           if(!fileInfo || fileInfo.length===0){
             // res.send(ResponseCreator.error(null,"File not exists"));
@@ -133,7 +174,7 @@ export default class FTPController{
           res.setHeader('Cache-Control', 'no-store');
           res.setHeader("Connection","keep-alive");
           res.setHeader('Content-Type', 'application/octet-stream');
-          const socket=await this.ftp?.get(decodingPath);
+          const socket=await ((await this.getFtp()).data)?.get(decodingPath);
 
           req.on('close', () => {
             logger.info(`Client disconnected: ${filePath}`);
