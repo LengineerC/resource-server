@@ -6,6 +6,7 @@ export enum FTP_REQUEST_PATHS{
     GET="get",
 
     PREVIEW="preview",
+    DOWNLOAD="download",
 };
 
 export enum CONFIG_REQUEST_PATHS{

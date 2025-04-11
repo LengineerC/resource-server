@@ -98,20 +98,34 @@
 
 }
 
-.info-p{
-    display: flex;
-    flex-direction: row;
-    width: auto;
+.info-modal{
 
-    .info-labal{
-        color: $textColor1;
-        font-weight: bold;
-        margin-right: 3px;
+    .info-p{
+        display: flex;
+        flex-direction: row;
+        width: auto;
+    
+        .info-labal{
+            color: $textColor1;
+            font-weight: bold;
+            margin-right: 3px;
+        }
+    
+        .info-content{
+            color: $textColor1;
+        }
     }
 
-    .info-content{
-        color: $textColor1;
+    .info-footer{
+        margin-top: 50px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+        width: 100%;
+        height: auto;
     }
+    
 }
 
 
@@ -122,7 +136,7 @@
         }
 
         .info-container{
-            width: 100px;
+            flex: 1;
 
             .resource-type{
                 @extend %info;

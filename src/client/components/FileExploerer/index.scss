@@ -13,6 +13,49 @@
     // flex: 1;
     // border: 2px solid #000;
 
+    .context-menu{
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffffcc;
+        width: auto;
+        height: auto;
+        z-index: 5;
+        border-radius: 5px;
+        // transition: 0.1s;
+        overflow: hidden;
+        -webkit-user-select: none;
+        box-shadow: 1px 1px 5px 2px #33333333;
+
+        &.hide{
+            height: 0;
+            width: 0;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+
+        .context-menu-option{
+            @extend %flex-hv-center;
+            box-sizing: border-box;
+            height: 30px;
+            width: 90px;
+            color: color.adjust($textColor1,$alpha:-0.4);
+            font-size: 14px;
+            transition: 0.1s;
+            border-bottom: 1px solid #aaaaaa66;
+
+            &:hover{
+                background-color: #eeeeeeaa;
+            }
+
+            &:active{
+                transform: scale(0.97);
+            }
+
+        }
+    }
+
     .preview{
         @extend %flex-hv-center;
         flex-direction: column;
@@ -31,11 +74,12 @@
             top: 30px;
             right: 30px;
             font-size: 30px;
-            color: color.adjust($textColor1,$alpha:-0.7);
+            color: color.adjust($textColor1,$alpha:-0.6);
             width: $size;
             height: $size;
             transition: 0.1s;
             border-radius: 50%;
+            cursor: pointer;
 
             &:hover{
                 background-color: #66666666;
@@ -101,6 +145,13 @@
                 width: 100%;
                 height: 100%;
             }
+
+            object{
+                object-fit: contain;
+                width: 100%;
+                height: 100%;
+            }
+
         }
     }
 

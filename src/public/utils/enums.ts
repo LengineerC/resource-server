@@ -13,4 +13,5 @@ export enum FILE_TYPE{
     APPLICATION="application",
     AUDIO="audio",
     VIDEO="video",
+    UNKNOWN="unknown",
 }

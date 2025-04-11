@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAppSelector } from "../../redux/hooks";
 // import { logout } from "../../services/ftpService";
 
@@ -8,6 +8,7 @@ import "./index.scss";
 export default function Main() {
   const navigate=useNavigate();
   const connect=useAppSelector(s=>s.connect);
+  const mainRef=useRef<HTMLDivElement|null>(null);
 
   useEffect(()=>{
     if(!connect.config || !connect.protocol){
@@ -16,15 +17,21 @@ export default function Main() {
 
   },[window.location.pathname]);
 
-  // useEffect(()=>{
+  const handleRightClick=(e:MouseEvent)=>{
+    e.preventDefault();
+  }
 
-  //   return ()=>{
-  //     logout();
-  //   }
-  // },[]);
+  useEffect(()=>{
+    mainRef.current?.addEventListener("contextmenu",handleRightClick);
+
+    return ()=>{
+      mainRef.current?.removeEventListener("contextmenu",handleRightClick);
+    }
+  },[]);
+
 
   return (
-    <div className="main">
+    <div className="main" ref={mainRef}>
       <Outlet />
     </div>
   );

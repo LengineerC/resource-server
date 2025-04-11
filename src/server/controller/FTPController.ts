@@ -9,6 +9,8 @@ import FTPHandler from "../components/FTPHandler";
 import RESPONSE_CODE from "../../public/utils/codes";
 import { Response } from "../../public/types/common";
 import { createContentType } from "../utils/functions";
+import { FILE_TYPE } from "../../public/utils/enums";
+import path from "path";
 
 export default class FTPController{
   private MAX_PREVIEW_SIZE=50*1024*1024;
@@ -22,7 +24,7 @@ export default class FTPController{
   }
 
   private createRequestListeners(){
-    const {BASE,LOGIN,LOGOUT,LS,PREVIEW}=FTP_REQUEST_PATHS;
+    const {BASE,LOGIN,LOGOUT,LS,PREVIEW,DOWNLOAD}=FTP_REQUEST_PATHS;
 
     this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
@@ -66,10 +68,10 @@ export default class FTPController{
 
     this.app.get(createUrl(BASE,PREVIEW),async(req,res)=>{
       try{
-        const {path}=req.query;
+        const {path:filePath}=req.query;
         
-        if(typeof path==="string"){
-          const decodingPath=decodeURIComponent(path);
+        if(typeof filePath==="string"){
+          const decodingPath=decodeURIComponent(filePath);
           const fileInfo=await this.ftp?.ls(decodingPath);
           
           if(!fileInfo || fileInfo.length===0){
@@ -82,14 +84,22 @@ export default class FTPController{
             return;
           }
 
-          res.setHeader("Content-Type",createContentType(decodingPath));
+          const contentType=createContentType(decodingPath);
+          // console.log("contentType",contentType)
+          if(contentType===FILE_TYPE.UNKNOWN){
+            res.send(ResponseCreator.error(null,"Unknown file"));
+            return;
+          }
+          
+          res.setHeader("Content-Type",contentType);
           res.setHeader("Cache-Control","no-cache");
           res.setHeader("Connection","keep-alive");
 
           const socket=await this.ftp?.get(decodingPath);
           if(socket){
             socket.on("end",()=>{
-              logger.info(`FTP preload ${path} finished`);
+              logger.info(`FTP preload ${filePath} finished`);
+              socket.destroy();
             });
 
             socket.pipe(res);
@@ -102,6 +112,54 @@ export default class FTPController{
         logger.error("Error to preload",req.query.path);
         res.send(ResponseCreator.error(null,"Error to preload"));
       }
+    });
+
+    this.app.get(createUrl(BASE,DOWNLOAD),async(req,res)=>{
+      const {path:filePath}=req.query;
+
+      try{
+        if(typeof filePath==="string"){
+          const decodingPath=decodeURIComponent(filePath);
+          const fileInfo=await this.ftp?.ls(decodingPath);
+          
+          if(!fileInfo || fileInfo.length===0){
+            // res.send(ResponseCreator.error(null,"File not exists"));
+            return;
+          }
+
+          const filename=path.basename(decodingPath);
+          res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+          res.setHeader('Content-Length', fileInfo[0].size);
+          res.setHeader('Cache-Control', 'no-store');
+          res.setHeader("Connection","keep-alive");
+          res.setHeader('Content-Type', 'application/octet-stream');
+          const socket=await this.ftp?.get(decodingPath);
+
+          req.on('close', () => {
+            logger.info(`Client disconnected: ${filePath}`);
+            socket?.destroy();
+            res.destroy();
+          });
+      
+
+          socket?.on("end",()=>{
+            logger.info(`FTP preload ${filePath} finished`);
+            socket.destroy();
+          });
+
+          socket?.on("error",err=>{
+            if(err){
+              logger.error("Failed to receive stream:",err);
+            }
+          })
+
+          socket?.pipe(res);
+        }
+
+      }catch(err){
+        logger.error(`Failed to download file: ${filePath}`,err);
+      }
+
     });
   }
 

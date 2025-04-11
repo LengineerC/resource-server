@@ -5,8 +5,8 @@ import {
   faFile,
   faFolder
 } from "@fortawesome/free-solid-svg-icons";
-import { Modal } from "antd";
-import { useRef, useState } from "react";
+import { Button, Modal } from "antd";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 
 import "./index.scss";
 
@@ -16,15 +16,28 @@ type Props={
   name:string,
   time:number,
   size:string,
+  style?:CSSProperties,
   onSelect?:()=>void,
   onUnSelect?:()=>void,
   onDoubleClick?:()=>void,
+  onRightClick?:(e:MouseEvent)=>void,
+  onDownloadClick?:()=>void,
+  onDeleteClick?:()=>void,
 }
 
 export default function ResourceContainer(props:Props) {
   const [selected,setSelected]=useState<boolean>(false);
   const [showInfoModal,setShowInfoModal]=useState<boolean>(false);
+  
   const rcRef=useRef<HTMLDivElement|null>(null);
+
+  useEffect(()=>{
+    rcRef.current?.addEventListener("contextmenu",e=>props.onRightClick?.(e));
+
+    return()=>{
+      rcRef.current?.removeEventListener("contextmenu",e=>props.onRightClick?.(e));
+    }
+  },[])
 
   const handleOnClick=()=>{
     !selected
@@ -33,7 +46,6 @@ export default function ResourceContainer(props:Props) {
 
     setSelected(!selected);
   }
-
 
   const getExtName=()=>{
     if(props.type===FTP_RESOURCE_TYPE.DIR) return "Directory";
@@ -73,6 +85,7 @@ export default function ResourceContainer(props:Props) {
 
   const showInfo=(e:React.MouseEvent<SVGSVGElement, MouseEvent>)=>{
     e.stopPropagation();
+
     setShowInfoModal(true);
   }
 
@@ -87,12 +100,23 @@ export default function ResourceContainer(props:Props) {
     props.onDoubleClick?.();
   }
 
+  const onDownloadClick=()=>{
+    setShowInfoModal(false);
+    props.onDownloadClick?.();
+  }
+
+  const onDeleteClick=()=>{
+    setShowInfoModal(false);
+    props.onDeleteClick?.();
+  }
+
   return (
     <div 
-      className={`rc-main ${selected&&"selected"}`}
+      className={`rc-main ${selected?"selected":""}`}
+      style={props.style}
       ref={rcRef} 
-      onClick={handleOnClick}
-      onDoubleClick={onDoubleClick}
+      onClick={showInfoModal?()=>{}:handleOnClick}
+      onDoubleClick={showInfoModal?()=>{}:onDoubleClick}
     >
       <FontAwesomeIcon 
         icon={props.type===FTP_RESOURCE_TYPE.DIR?faFolder:faFile}
@@ -123,11 +147,27 @@ export default function ResourceContainer(props:Props) {
         />
       </div>
 
-      <Modal 
+      <Modal
         title="Infomation" 
+        className="info-modal"
         open={showInfoModal} 
         onCancel={onInfoModalClose}
-        footer={null}
+        footer={<>
+          <Button 
+            color="danger" 
+            variant="outlined"
+            onClick={onDeleteClick}
+          >
+            删除
+          </Button>
+
+          <Button 
+            color="primary"
+            onClick={onDownloadClick}
+          >
+            下载
+          </Button>
+        </>}
         closable
       >
         <div className="info-p">
@@ -151,6 +191,10 @@ export default function ResourceContainer(props:Props) {
             <div className="info-content">{getSizeString()}</div>
           </div>
         )}
+
+        {/* <div className="info-footer">
+
+        </div> */}
       </Modal>
     </div>
   );

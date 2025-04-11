@@ -29,9 +29,15 @@ export function ls(params:{path:string}){
 export function preview(params:{path:string}){
     return request(createUrl(BASE,FTP_REQUEST_PATHS.PREVIEW),{
         method:"GET",
-        params:{
-            path:encodeURIComponent(params.path)
-        },
+        params,
         responseType:"blob"
     },true) as Promise<AxiosResponse<Blob>>;
+}
+
+export function download(params:{path:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.DOWNLOAD),{
+        method:"GET",
+        params,
+        responseType:"blob"
+    }) as Promise<Blob>;
 }

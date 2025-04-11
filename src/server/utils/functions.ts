@@ -47,6 +47,6 @@ export function createContentType(filePath:string):string{
       return `${FILE_TYPE.APPLICATION}/${extName}`;
     
     default:
-      return "unknown";
+      return FILE_TYPE.UNKNOWN;
   }
 }
