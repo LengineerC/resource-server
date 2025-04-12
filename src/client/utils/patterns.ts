@@ -1,0 +1,1 @@
+export const INVALID_RESOURCE_NAME_PATTERN=/[\s/\\\?:\*\<\>\|]+/;

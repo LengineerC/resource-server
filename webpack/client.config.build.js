@@ -2,6 +2,7 @@ const { default: merge } = require("webpack-merge");
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const CopyWebpackPlugin=require("copy-webpack-plugin");
 const webpack = require('webpack');
 const baseConfig = require("./base.config");
 const path = require('path');
@@ -21,6 +22,15 @@ module.exports = merge(baseConfig, {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new CopyWebpackPlugin({
+      patterns:[
+        {
+          from: path.resolve(__dirname, "../public/streamsaver"),
+          to: "streamsaver",
+          noErrorOnMissing: true
+        },
+      ]
+    }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "../src/client/index.html"),
       filename: 'index.html',

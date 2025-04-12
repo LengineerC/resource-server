@@ -10,13 +10,14 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FTPResource, Response } from "../../../public/types/common";
-import { Image, Popover, Spin } from "antd";
-import { download, ls, preview } from "../../services/ftpService";
+import { Button, Image, Input, Modal, Popover, Spin } from "antd";
+import { deleteDir, deleteFile, download, ls, mkdir, preview, rename } from "../../services/ftpService";
 import useMessage from "antd/es/message/useMessage";
 import RESPONSE_CODE from "../../../public/utils/codes";
 import ResourceContainer from "./ResourceContainer";
 import { FILE_TYPE, FTP_RESOURCE_TYPE } from "../../../public/utils/enums";
 import { APPLICATION_TYPE } from "../../utils/enums";
+import { INVALID_RESOURCE_NAME_PATTERN } from "../../utils/patterns";
 
 import "./index.scss";
 
@@ -324,11 +325,17 @@ export default function FileExplorer() {
   );
   const [objectUrl,setObjectUrl]=useState<string|null>();
   const [showContextMenu,setShowContextMenu]=useState<boolean>(false);
+  const [showMkdirModal,setShowMkdirModal]=useState<boolean>(false);
+  const [dirname,setDirname]=useState<string>("");
+  const [showDeleteModal,setShowDeleteModal]=useState<boolean>(false);
+  const [showDeletePopover,setShowDeletePopover]=useState<boolean>(false);
+  const [showRenameModal,setShowRenameModal]=useState<boolean>(false);
+  const [renameInputValue,setRenameInputValue]=useState<string>("");
 
   const mainRef=useRef<HTMLDivElement|null>(null);
   const contextMenuRef=useRef<HTMLDivElement|null>(null);
 
-  useEffect(()=>{
+  const getList=async()=>{
     setLoading(true);
     setSelectedResources([]);
     setCurrentResource(null);
@@ -346,6 +353,10 @@ export default function FileExplorer() {
     }).finally(()=>{
       setLoading(false);
     });
+  }
+
+  useEffect(()=>{
+    getList();
 
   },[path]);
 
@@ -547,33 +558,57 @@ export default function FileExplorer() {
 
   const handleRightClick=(e:MouseEvent,resource:FTPResource)=>{
     e.preventDefault();
-    setCurrentResource(resource);
 
-    // console.log(e.clientX,e.clientY);
-    const rect=mainRef.current!.getBoundingClientRect();
-    const left=e.clientX-rect.left;
-    const top=e.clientY-rect.top;
-    contextMenuRef.current!.style.cssText=`
-      left: ${left}px;
-      top: ${top}px;
-    `;
-    setShowContextMenu(true);
+    if(contextMenuRef.current){
+        setCurrentResource(resource);
+    
+        // console.log(e.clientX,e.clientY);
+        const rect=mainRef.current!.getBoundingClientRect();
+        const left=e.clientX-rect.left;
+        const top=e.clientY-rect.top;
+        contextMenuRef.current.style.cssText=`
+          left: ${left}px;
+          top: ${top}px;
+        `;
+        setShowContextMenu(true);
+    }
   }
 
   const handleDownload=async(resource:FTPResource)=>{
-    const resourcePath=getResourcePath(resource.name);
+    const controller=new AbortController();
+    const resourcePath=encodeURIComponent(getResourcePath(resource.name));
     setCurrentResource(null);
-    if(mainRef.current){
-      const response=await download({path:resourcePath});
-      
-      const url=URL.createObjectURL(response);
-      const link=document.createElement("a");
-      link.href=url;
-      link.setAttribute("download",resource.name);
-      mainRef.current!.appendChild(link);
-      link.click();
-      URL.revokeObjectURL(url);
+
+    try{
+      const result=await download(
+        {path:resourcePath},
+        {
+          filename:resource.name,
+          signal:controller.signal
+        }
+      );
+      if (result.success) {
+        console.log('下载成功:', result.filename);
+        messageApi.success(`Download finished: ${result.filename}`);
+      } else {
+        console.error('下载失败:', result.error);
+        messageApi.success(`Failed to download: ${result.error}`);
+      }
+    }catch(err){
+      console.error('请求异常:', err);
+      messageApi.error(`Request error: ${err}`);
     }
+    // if(mainRef.current){
+      // const response=await download({path:resourcePath});
+      
+      // const url=URL.createObjectURL(response);
+      // const link=document.createElement("a");
+      // link.href=url;
+      // link.setAttribute("download",resource.name);
+      // mainRef.current!.appendChild(link);
+      // link.click();
+      // URL.revokeObjectURL(url);
+    // }
   }
 
   const handleDownloadBatch = async () => {
@@ -639,9 +674,106 @@ export default function FileExplorer() {
         onDoubleClick={()=>onDoubleClick(resource,resourcePath)}
         onRightClick={e=>handleRightClick(e,resource)}
         onDownloadClick={()=>handleDownload(resource)}
+        onDeleteClick={()=>setShowDeleteModal(true)}
+        onShowInfo={()=>setCurrentResource(resource)}
+        onCloseInfo={()=>setCurrentResource(null)}
+        onRenameClick={()=>setShowRenameModal(true)}
       />
     );
   });
+  
+  const handleMkdirModalCanceled=()=>{
+    setShowMkdirModal(false);
+    setDirname("");
+  }
+  const handleMkdir=async()=>{
+    if(dirname.length===0||INVALID_RESOURCE_NAME_PATTERN.test(dirname)){
+      messageApi.error("Invalid dirname!");
+
+    }else{
+      const dirpath=getResourcePath(dirname);
+      handleMkdirModalCanceled();
+      const response=await mkdir({
+        dirpath:encodeURIComponent(dirpath)
+      });
+
+      const {code,msg}=response;
+      if(code===RESPONSE_CODE.SUCCESS){
+        messageApi.success(msg);
+        setPath(dirpath);
+      }else{
+        messageApi.error(msg);
+      }
+    }
+  }
+
+  const handleDeleteModalCanceled=()=>{
+    setShowDeleteModal(false);
+    setCurrentResource(null);
+    setShowContextMenu(false);
+  }
+  const handleDelete= async(resource:FTPResource)=>{
+    setShowDeleteModal(false);
+   
+    const resourcePath=encodeURIComponent(getResourcePath(resource.name));
+
+    let response:Response<null>={
+      code:RESPONSE_CODE.ERROR,
+      msg:"",
+      data:null
+    };
+    if(resource.type===FTP_RESOURCE_TYPE.FILE){
+      // console.log("delete file:",getResourcePath(resource.name));
+      response=await deleteFile({filePath:resourcePath});
+    }else if(resource.type===FTP_RESOURCE_TYPE.DIR){
+      // console.log("delete directory:",getResourcePath(resource.name));
+      response=await deleteDir({dirpath:resourcePath});
+    }
+
+    const {code,msg}=response;
+    if(code===RESPONSE_CODE.SUCCESS){
+      messageApi.success(msg);
+      await getList();
+    }else{
+      messageApi.error(msg);
+    }
+
+  }
+  const handleDeleteBatch=async()=>{
+    try{
+      for(const resource of selectedResources){
+        await handleDelete(resource);
+      }
+      messageApi.success("Deleted resources finished!");
+    }catch(err){
+      console.error("Delete batch error!",err);
+      messageApi.error("Delete batch error!");
+    }
+  }
+
+  const handleRenameModelCanceled=()=>{
+    setShowRenameModal(false);
+    setRenameInputValue("");
+  }
+  const handleRename=async()=>{
+    if(renameInputValue.length===0||INVALID_RESOURCE_NAME_PATTERN.test(renameInputValue)){
+      messageApi.error("Invalid name!");
+      return;
+    }
+
+    const from=encodeURIComponent(getResourcePath(currentResource!.name));
+    const to=encodeURIComponent(getResourcePath(renameInputValue));
+    handleRenameModelCanceled();
+
+    const response=await rename({from,to});
+    const {code,msg}=response;
+    if(code===RESPONSE_CODE.SUCCESS){
+      messageApi.success(msg);
+      getList();
+    }else{
+      messageApi.error(msg);
+    }
+  }
 
   return (
     <div
@@ -660,12 +792,56 @@ export default function FileExplorer() {
 
           <div 
             className="preview-container"
-            ref={contextMenuRef}
           >
             {previewElem}
           </div>
         </div>
       )}
+
+      <Modal
+        title={"Delete resourse"}
+        open={showDeleteModal}
+        onCancel={handleDeleteModalCanceled}
+        footer={<>
+          <Button onClick={handleDeleteModalCanceled}>
+            Cancel
+          </Button>
+          
+          <Button 
+            variant="solid" 
+            color="danger"
+            onClick={()=>handleDelete(currentResource!)}
+          >
+            Delete
+          </Button>
+        </>}
+      >
+        <p>Are you sure to delete <span style={{fontWeight:"bold"}}>{currentResource?.name}</span></p>
+      </Modal>
+
+      <Modal
+        open={showMkdirModal}
+        title={"New directory name"}
+        onOk={handleMkdir} 
+        onCancel={handleMkdirModalCanceled}
+      >
+        <Input 
+          value={dirname}
+          onChange={e=>setDirname(e.target.value)}
+        />
+      </Modal>
+
+      <Modal
+        open={showRenameModal}
+        title={`Raname ${currentResource?.name} to`}
+        onOk={handleRename} 
+        onCancel={handleRenameModelCanceled}
+      >
+        <Input 
+          value={renameInputValue}
+          onChange={e=>setRenameInputValue(e.target.value)}
+        />
+      </Modal>
 
       <div 
         className={`context-menu ${showContextMenu?"":"hide"}`}
@@ -680,8 +856,17 @@ export default function FileExplorer() {
           </div>
         )}
         
+        <div 
+          className="context-menu-option"
+          onClick={()=>setShowRenameModal(true)}
+        >
+          Rename
+        </div>
 
-        <div className="context-menu-option">
+        <div 
+          className="context-menu-option"
+          onClick={()=>setShowDeleteModal(true)}
+        >
           <p style={{
             color:"#ff0000aa"
           }}>
@@ -724,13 +909,55 @@ export default function FileExplorer() {
 
       <div className="resources">
         <div className="options">
-          <FontAwesomeIcon
-            icon={faTrashCan}
-            className={`btn ${selectedResources.length===0 && "disabled"}`}
-            onClick={
-              selectedResources.length===0?()=>{}:()=>{}
+          <Popover
+            trigger="click"
+            open={
+              selectedResources.length===0?
+              false:
+              showDeletePopover
             }
-          />
+            onOpenChange={
+              selectedResources.length===0?()=>setShowDeletePopover(false):
+              open=>setShowDeletePopover(open)
+            }
+            content={
+              <>
+              <p style={{fontWeight:"bold"}}>Are you sure to delete those resources?</p>
+
+              <div style={{
+                display:"flex",
+                width:"100%",
+                justifyContent:"flex-end"
+              }}>
+                <Button 
+                  style={{marginRight:"20px"}} 
+                  onClick={()=>setShowDeletePopover(false)}
+                >
+                  No
+                </Button>
+
+                <Button 
+                  variant="solid" 
+                  color="danger"
+                  onClick={()=>{
+                    setShowDeletePopover(false);
+                    handleDeleteBatch();
+                  }}
+                >
+                  Yes
+                </Button>
+              </div>
+              </>
+            }
+          >
+            <FontAwesomeIcon
+              icon={faTrashCan}
+              className={`btn ${selectedResources.length===0 && "disabled"}`}
+              // onClick={
+              //   selectedResources.length===0?()=>{}:()=>setShowDeletePopover(true)
+              // }
+            />
+          </Popover>
 
           <div>
             <FontAwesomeIcon
@@ -744,9 +971,7 @@ export default function FileExplorer() {
             <FontAwesomeIcon
               icon={faFolderPlus}
               className={`btn`}
-              onClick={
-                selectedResources.length===0?()=>{}:()=>{}
-              }
+              onClick={()=>setShowMkdirModal(true)}
             />
           </div>
         </div>

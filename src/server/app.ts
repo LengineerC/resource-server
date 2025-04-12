@@ -43,6 +43,11 @@ if(process.env.NODE_ENV!=="development"){
         logger.info(`Send file ${indexPage}`);
         res.sendFile(indexPage);
     });
+
+    app.get("/streamsaver",(_,res)=>{
+        const mitm=path.resolve(__dirname,"../client/streamsaver/mitm.html");
+        res.sendFile(mitm);
+    });
 }
 
 new ConfigController(app);

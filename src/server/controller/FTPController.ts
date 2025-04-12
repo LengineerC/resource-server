@@ -59,7 +59,7 @@ export default class FTPController{
   }
 
   private createRequestListeners(){
-    const {BASE,LOGIN,LOGOUT,LS,PREVIEW,DOWNLOAD}=FTP_REQUEST_PATHS;
+    const {BASE,LOGIN,LOGOUT,LS,PREVIEW,DOWNLOAD,MKDIR,DELETE,RMDIR,RENAME}=FTP_REQUEST_PATHS;
 
     this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
@@ -174,23 +174,33 @@ export default class FTPController{
           res.setHeader('Cache-Control', 'no-store');
           res.setHeader("Connection","keep-alive");
           res.setHeader('Content-Type', 'application/octet-stream');
-          const socket=await ((await this.getFtp()).data)?.get(decodingPath);
+          const ftp=(await this.getFtp()).data;
+          const socket=await ftp?.get(decodingPath);
 
           req.on('close', () => {
             logger.info(`Client disconnected: ${filePath}`);
             socket?.destroy();
             res.destroy();
+            if(ftp){
+              this.releaseFtp(ftp);
+            }
           });
       
 
           socket?.on("end",()=>{
             logger.info(`FTP preload ${filePath} finished`);
             socket.destroy();
+            if(ftp){
+              this.releaseFtp(ftp);
+            }
           });
 
           socket?.on("error",err=>{
             if(err){
               logger.error("Failed to receive stream:",err);
+              if(ftp){
+                this.releaseFtp(ftp);
+              }
             }
           })
 
@@ -201,6 +211,81 @@ export default class FTPController{
         logger.error(`Failed to download file: ${filePath}`,err);
       }
 
+    });
+
+    this.app.post(createUrl(BASE,MKDIR),async(req,res)=>{
+      const {dirpath}=req.body;
+      
+      if(typeof dirpath==="string"){
+        try{
+          const ftp=(await this.getFtp()).data;
+          await ftp?.mkdir(decodeURIComponent(dirpath));
+          
+          res.send(ResponseCreator.success(null,"Create directory succesfully"));
+        }catch(err){
+          res.send(ResponseCreator.error(null,"Failed to create directory"));
+        }
+      }else{
+        logger.error("TypeError: dirPath is not a string");
+        res.send(ResponseCreator.error(null,"TypeError: dirPath is not a string"));
+      }
+    
+    });
+
+    this.app.post(createUrl(BASE,DELETE),async(req,res)=>{
+      const {filePath}=req.body;
+
+      if(typeof filePath==="string"){
+        try {
+          const ftp=(await this.getFtp()).data;
+          await ftp?.delete(decodeURIComponent(filePath));
+  
+          res.send(ResponseCreator.success(null,"Delete file successfully"));
+        } catch (err) {
+          res.send(ResponseCreator.error(null,"Failed to delete file"));
+        }
+      }else{
+        logger.error("TypeError: filePath is not a string");
+        res.send(ResponseCreator.error(null,"TypeError: filePath is not a string"));
+      }
+    });
+
+    this.app.post(createUrl(BASE,RMDIR),async(req,res)=>{
+      const {dirpath}=req.body;
+
+      if(typeof dirpath==="string"){
+        try {
+          const ftp=(await this.getFtp()).data;
+          await ftp?.rmdir(decodeURIComponent(dirpath));
+  
+          res.send(ResponseCreator.success(null,"Delete diretory successfully"));
+        } catch (err) {
+          res.send(ResponseCreator.error(null,"Failed to delete diretory"));
+        }
+      }else{
+        logger.error("TypeError: dirpath is not a string");
+        res.send(ResponseCreator.error(null,"TypeError: dirpath is not a string"));
+      }
+    });
+
+    this.app.post(createUrl(BASE,RENAME),async(req,res)=>{
+      const {from,to}=req.body;
+
+      if(typeof from==="string" && typeof to==="string"){
+        const ftp=(await this.getFtp()).data;
+        const fromPath=decodeURIComponent(from);
+        const toPath=decodeURIComponent(to);
+        const response=await ftp?.rename(fromPath,toPath);
+
+        if(response===RESPONSE_CODE.SUCCESS){
+          res.send(ResponseCreator.success(null,"Renaming successful"));
+        }else{
+          res.send(ResponseCreator.error(null,"Failed to rename"));
+        }
+      }else{
+        logger.error("TypeError: from or to is not string");
+        res.send(ResponseCreator.error(null,"TypeError: from or to is not string"));
+      }
     });
   }
 

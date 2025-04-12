@@ -4,6 +4,7 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const webpack = require('webpack');
 const baseConfig = require("./base.config");
+const CopyWebpackPlugin=require("copy-webpack-plugin");
 const path = require('path');
 
 module.exports = merge(baseConfig, {
@@ -22,7 +23,10 @@ module.exports = merge(baseConfig, {
     publicPath: '/',
   },
   devServer: {
-    static: path.resolve(__dirname, '../dist/client'),
+    static: [
+      path.resolve(__dirname, '../dist/client'),
+      path.resolve(__dirname,"../public"),
+    ],
     port: 8080,
     hot:true,
     open: false,
@@ -30,6 +34,15 @@ module.exports = merge(baseConfig, {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new CopyWebpackPlugin({
+      patterns:[
+        {
+          from: path.resolve(__dirname, "../public/streamsaver"),
+          to: "streamsaver",
+          noErrorOnMissing: true
+        },
+      ]
+    }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "../src/client/index.html"),
       filename: 'index.html',

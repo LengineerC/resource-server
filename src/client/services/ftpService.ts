@@ -3,6 +3,7 @@ import createUrl from "../../public/functions/createUrl"
 import request from "../utils/request/request"
 import { FTP_REQUEST_PATHS } from "../../public/utils/requests";
 import { AxiosResponse } from "axios";
+import { fetchStreamDownload } from "../utils/request/fetchStreamDownload";
 
 const {BASE}=FTP_REQUEST_PATHS;
 
@@ -34,10 +35,55 @@ export function preview(params:{path:string}){
     },true) as Promise<AxiosResponse<Blob>>;
 }
 
-export function download(params:{path:string}){
-    return request(createUrl(BASE,FTP_REQUEST_PATHS.DOWNLOAD),{
-        method:"GET",
-        params,
-        responseType:"blob"
-    }) as Promise<Blob>;
+// export function download(params:{path:string}){
+//     return request(createUrl(BASE,FTP_REQUEST_PATHS.DOWNLOAD),{
+//         method:"GET",
+//         params,
+//         responseType:"blob"
+//     }) as Promise<Blob>;
+// }
+
+export function download(params:{path:string},options?: {
+    filename?: string;
+    onProgress?: (loaded: number, total?: number) => void;
+    signal?: AbortSignal;
+}){
+    const url=createUrl(BASE,FTP_REQUEST_PATHS.DOWNLOAD);
+    
+    return fetchStreamDownload(
+        url,
+        {
+            method:"GET",
+            params,
+            ...options
+        }
+    );
+}
+
+export function mkdir(params:{dirpath:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.MKDIR),{
+        method:"POST",
+        params
+    }) as Promise<Response<null>>;
+}
+
+export function deleteFile(params:{filePath:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.DELETE),{
+        method:"POST",
+        params
+    }) as Promise<Response<null>>;
+}
+
+export function deleteDir(params:{dirpath:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.RMDIR),{
+        method:"POST",
+        params
+    }) as Promise<Response<null>>;
+}
+
+export function rename(params:{from:string,to:string}){
+    return request(createUrl(BASE,FTP_REQUEST_PATHS.RENAME),{
+        method:"POST",
+        params
+    }) as Promise<Response<null>>;
 }

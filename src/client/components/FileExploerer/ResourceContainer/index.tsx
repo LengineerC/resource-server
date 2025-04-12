@@ -23,6 +23,9 @@ type Props={
   onRightClick?:(e:MouseEvent)=>void,
   onDownloadClick?:()=>void,
   onDeleteClick?:()=>void,
+  onRenameClick?:()=>void,
+  onShowInfo?:()=>void,
+  onCloseInfo?:()=>void,
 }
 
 export default function ResourceContainer(props:Props) {
@@ -87,11 +90,13 @@ export default function ResourceContainer(props:Props) {
     e.stopPropagation();
 
     setShowInfoModal(true);
+    props.onShowInfo?.();
   }
 
   const onInfoModalClose=(e:React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
     e.stopPropagation();
     setShowInfoModal(false);
+    props.onCloseInfo?.();
   }
 
   const onDoubleClick=(e:React.MouseEvent<HTMLDivElement, MouseEvent>)=>{
@@ -108,6 +113,11 @@ export default function ResourceContainer(props:Props) {
   const onDeleteClick=()=>{
     setShowInfoModal(false);
     props.onDeleteClick?.();
+  }
+
+  const onRenameClick=()=>{
+    setShowInfoModal(false);
+    props.onRenameClick?.();
   }
 
   return (
@@ -158,14 +168,24 @@ export default function ResourceContainer(props:Props) {
             variant="outlined"
             onClick={onDeleteClick}
           >
-            删除
+            Delete
           </Button>
 
+          {
+            props.type===FTP_RESOURCE_TYPE.FILE&&
+            <Button 
+              color="primary"
+              onClick={onDownloadClick}
+            >
+              Downlaod
+            </Button>
+          }
+
           <Button 
-            color="primary"
-            onClick={onDownloadClick}
+            variant="outlined"
+            onClick={onRenameClick}
           >
-            下载
+            Rename
           </Button>
         </>}
         closable

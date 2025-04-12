@@ -3,6 +3,7 @@ import logger from "../log4js/logger";
 import ResponseCreator from "../response/ResponseCreator";
 import { FTPResource } from "../../public/types/common";
 import { Socket } from "net";
+import RESPONSE_CODE from "../../public/utils/codes";
 
 export default class FTPHandler{
     private option:JsftpOpts;
@@ -62,6 +63,48 @@ export default class FTPHandler{
         });
     }
 
+    public mkdir(path:string):Promise<null>{
+        return new Promise((resolve,reject)=>{
+            this.ftp?.raw("mkd",path,(err,data)=>{
+                if(err){
+                    logger.error("mkdir error:",err);
+                    reject(err);
+                }
+
+                logger.info("mkdir:",data.text);
+                resolve(null);
+            });
+        });
+    }
+
+    public delete(path:string):Promise<null>{
+        return new Promise((resolve,reject)=>{
+            this.ftp?.raw("dele",path,(err,data)=>{
+                if(err){
+                    logger.error("delete error:",err);
+                    reject(err);
+                }
+
+                logger.info("delete:",data.text);
+                resolve(null);
+            });
+        });
+    }
+
+    public rmdir(path:string):Promise<null>{
+        return new Promise((resolve,reject)=>{
+            this.ftp?.raw("rmd",path,(err,data)=>{
+                if(err){
+                    logger.error("rmdir error:",err);
+                    reject(err);
+                }
+
+                logger.info("rmdir:",data.text);
+                resolve(null);
+            });
+        });
+    }
+
     public get(path:string):Promise<Socket>{
         return new Promise((resolve,reject)=>{
             this.ftp?.get(path,(err,data)=>{
@@ -71,6 +114,19 @@ export default class FTPHandler{
                 }
 
                 resolve(data);
+            });
+        });
+    }
+
+    public rename(fromPath:string,toPath:string):Promise<RESPONSE_CODE>{
+        return new Promise((resolve,reject)=>{
+            this.ftp?.rename(fromPath,toPath,err=>{
+                if(err){
+                    logger.error(`Rename ${fromPath} to ${toPath} failed`);
+                    reject(err);
+                }
+
+                resolve(RESPONSE_CODE.SUCCESS);
             });
         });
     }

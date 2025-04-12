@@ -68,5 +68,5 @@ module.exports = {
       "buffer": require.resolve("buffer/"),
       "global": require.resolve("global/"),
     },
-  }
+  },
 }

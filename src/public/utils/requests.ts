@@ -7,6 +7,10 @@ export enum FTP_REQUEST_PATHS{
 
     PREVIEW="preview",
     DOWNLOAD="download",
+    MKDIR="mkdir",
+    DELETE="delete",
+    RMDIR="rmdir",
+    RENAME="rename",
 };
 
 export enum CONFIG_REQUEST_PATHS{
