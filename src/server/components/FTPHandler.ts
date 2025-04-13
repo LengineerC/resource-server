@@ -1,23 +1,26 @@
-import jsftp,{ JsftpOpts } from "jsftp";
+import FTP,{ JsftpOpts } from "jsftp";
 import logger from "../log4js/logger";
 import ResponseCreator from "../response/ResponseCreator";
 import { FTPResource } from "../../public/types/common";
 import { Socket } from "net";
 import RESPONSE_CODE from "../../public/utils/codes";
+import { Client } from "basic-ftp";
+// import { Readable } from "stream";
+// import fs from "fs";
 
 export default class FTPHandler{
     private option:JsftpOpts;
-    private ftp:jsftp|null;
+    private ftp:FTP|null;
 
     constructor(option:JsftpOpts){
         this.ftp=null;
         this.option=option;
     }
     
-    private createFtpClient():Promise<jsftp|null>{
+    private createFtpClient():Promise<FTP|null>{
         return new Promise((resolve,reject)=>{
             try{
-                const ftp=new jsftp(this.option);
+                const ftp=new FTP(this.option);
                 ftp.on("error",err => {
                     reject(new Error(`Error to connect FTP server: ${err.message}`));
                 });
@@ -76,6 +79,44 @@ export default class FTPHandler{
             });
         });
     }
+
+    // public put(buffer:string|Buffer|Readable,path:string):Promise<RESPONSE_CODE>{
+    //     return new Promise((resolve,reject)=>{
+    //         logger.info("Start to put:",path);
+    //         this.ftp?.put(buffer, path, err => {
+    //             if (err) {
+    //               logger.error("Failed to put file:",path);
+    //               reject(err);
+    //             }
+
+    //             logger.info("Success to input file:",path);
+    //             resolve(RESPONSE_CODE.SUCCESS);
+    //           });
+    //     });
+    // }
+
+    public async put(localPath:string,remotePath:string):Promise<RESPONSE_CODE>{
+        const client=new Client();
+        client.ftp.verbose=true;
+        try{
+            await client.access({
+                host: this.option.host,
+                user: this.option.user,
+                password: this.option.pass,
+                port: this.option.port,
+                secure: false
+            });
+
+            await client.uploadFrom(localPath,remotePath);
+            return RESPONSE_CODE.SUCCESS;
+        }catch(err){
+            logger.error("Failed to put file:",localPath,err);
+            throw err;
+        }finally{
+            client.close();
+        }
+    }
+
 
     public delete(path:string):Promise<null>{
         return new Promise((resolve,reject)=>{

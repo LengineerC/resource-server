@@ -37,3 +37,11 @@ export type FTPResource={
     groupPermissions: Permission,
     otherPermissions: Permission
 }
+
+export type UploadChunk={
+    file:Blob,
+    uploadId:string,
+    fileName:string,
+    totalSize:string,
+    chunkIndex:string,
+}

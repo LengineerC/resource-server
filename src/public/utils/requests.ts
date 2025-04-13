@@ -11,6 +11,8 @@ export enum FTP_REQUEST_PATHS{
     DELETE="delete",
     RMDIR="rmdir",
     RENAME="rename",
+    UPLOAD="updload",
+    COMPLETE_UPLOAD="complete-upload",
 };
 
 export enum CONFIG_REQUEST_PATHS{

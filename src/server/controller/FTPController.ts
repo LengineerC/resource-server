@@ -2,14 +2,17 @@ import { Express } from "express";
 import ResponseCreator from "../response/ResponseCreator";
 import createUrl from "../../public/functions/createUrl";
 import { FTP_REQUEST_PATHS } from "../../public/utils/requests";
+import process from "process";
 import logger from "../log4js/logger";
 import FileTools from "../components/FileTools";
-import { CONFIG_FILE } from "../utils/constants";
+import { CHUNK_FILE_EXTNAME, CONFIG_FILE } from "../utils/constants";
 import FTPHandler from "../components/FTPHandler";
 import RESPONSE_CODE from "../../public/utils/codes";
-import { Config, FTPConfig, Response } from "../../public/types/common";
+import { Config, FTPConfig, Response, UploadChunk } from "../../public/types/common";
 import { createContentType } from "../utils/functions";
 import { FILE_TYPE } from "../../public/utils/enums";
+import formidableMiddleware from "express-formidable";
+import fs from 'fs';
 import path from "path";
 
 export default class FTPController{
@@ -47,7 +50,8 @@ export default class FTPController{
     return ResponseCreator.success<FTPHandler>(this.ftpPool[Math.floor(Math.random() * this.MAX_POOL_SIZE)]);
   }
 
-  private async releaseFtp(ftp:FTPHandler){
+  private async releaseFtp(ftp:FTPHandler|null){
+    if(ftp===null) return;
     try{
       await ftp.quit();
       this.ftpPool = this.ftpPool.filter(conn => conn !== ftp);
@@ -59,7 +63,7 @@ export default class FTPController{
   }
 
   private createRequestListeners(){
-    const {BASE,LOGIN,LOGOUT,LS,PREVIEW,DOWNLOAD,MKDIR,DELETE,RMDIR,RENAME}=FTP_REQUEST_PATHS;
+    const {BASE,LOGIN,LOGOUT,LS,PREVIEW,DOWNLOAD,MKDIR,DELETE,RMDIR,RENAME,UPLOAD,COMPLETE_UPLOAD}=FTP_REQUEST_PATHS;
 
     this.app.post(createUrl(BASE,LOGIN),async(req,res)=>{
       try{
@@ -271,22 +275,128 @@ export default class FTPController{
     this.app.post(createUrl(BASE,RENAME),async(req,res)=>{
       const {from,to}=req.body;
 
-      if(typeof from==="string" && typeof to==="string"){
-        const ftp=(await this.getFtp()).data;
-        const fromPath=decodeURIComponent(from);
-        const toPath=decodeURIComponent(to);
-        const response=await ftp?.rename(fromPath,toPath);
-
-        if(response===RESPONSE_CODE.SUCCESS){
-          res.send(ResponseCreator.success(null,"Renaming successful"));
+      try{
+        if(typeof from==="string" && typeof to==="string"){
+          const ftp=(await this.getFtp()).data;
+          const fromPath=decodeURIComponent(from);
+          const toPath=decodeURIComponent(to);
+          const response=await ftp?.rename(fromPath,toPath);
+  
+          if(response===RESPONSE_CODE.SUCCESS){
+            res.send(ResponseCreator.success(null,"Renaming successful"));
+          }else{
+            res.send(ResponseCreator.error(null,"Failed to rename"));
+          }
         }else{
-          res.send(ResponseCreator.error(null,"Failed to rename"));
+          logger.error("TypeError: from or to is not string");
+          res.send(ResponseCreator.error(null,"TypeError: from or to is not string"));
         }
-      }else{
-        logger.error("TypeError: from or to is not string");
-        res.send(ResponseCreator.error(null,"TypeError: from or to is not string"));
+      }catch(err){
+        logger.error(`Failed to rename`);
+        res.send(ResponseCreator.error(null,"Failed to rename"));
       }
     });
+
+    this.app.post(createUrl(BASE,UPLOAD),async(req,res)=>{
+      const { uploadId, fileName, chunkIndex } = req.query as any;
+
+      if (!uploadId || !fileName || chunkIndex === undefined) {
+        res
+          .status(400)
+          .send(ResponseCreator.error(null, "uploadId, fileName or chunkIndex is undefined"));
+
+          return;
+      }
+      // console.log(`Caching ${fileName}: chunk-${chunkIndex}`);
+      
+      try{
+        const tempDir=path.join(process.cwd(),".temp",uploadId);
+        if(!fs.existsSync(tempDir)){
+          fs.mkdirSync(tempDir,{recursive:true});
+        }
+        const chunkPath=path.join(tempDir,`${chunkIndex}${CHUNK_FILE_EXTNAME}`);
+        const writeStream=fs.createWriteStream(chunkPath);
+        req.pipe(writeStream);
+
+        writeStream.on("finish",()=>{
+          res.send(ResponseCreator.success(null, `${uploadId}: upload ${chunkIndex} finished`));
+        });
+
+        writeStream.on("error",err=>{
+          logger.error(`${uploadId}: upload ${chunkIndex} error:`,err.message);
+          res.status(500).json(ResponseCreator.error(null, err.message));
+        });
+
+        // res.send(ResponseCreator.success(null,`Uploaded chunk ${chunkIndex}`));
+      }catch(err){
+        logger.error("Upload chunk ${chunkIndex} error:", err);
+        res.status(500).json(ResponseCreator.error(null, `Upload chunk ${chunkIndex} error`));
+      }
+    });
+    this.app.post(`${createUrl(BASE,COMPLETE_UPLOAD)}/:uploadId`,async(req,res)=>{
+      const { uploadId } = req.params;
+      const { fileName,toPath } = req.body;
+
+      if (!uploadId || !fileName) {
+        res.status(400).send(ResponseCreator.error(null, "No uploadId or fileName"));
+      }
+
+      const ftp=(await this.getFtp()).data;
+      const files=await ftp?.ls(toPath);
+      if(!files || files.length>0){
+        res.send(ResponseCreator.success(null,`File ${fileName} has existed`));
+        return;
+      }
+
+      try{
+        const tempDir = path.join(process.cwd(), ".temp", uploadId);
+        if (!fs.existsSync(tempDir)) {
+          logger.error(`${uploadId} chunks not found`);
+          res.status(400).send(ResponseCreator.error(null, `${uploadId} chunks not found`));
+        }
+
+        const chunkFiles=fs.readdirSync(tempDir)
+        .filter(f=>f.endsWith(CHUNK_FILE_EXTNAME))
+        .sort((a,b)=>Number(a.split(".")[0])-Number(b.split(".")[0]));
+
+        const mergedFilePath=path.join(tempDir,fileName);
+        const writeStream=fs.createWriteStream(mergedFilePath);
+
+        for (const chunkFile of chunkFiles) {
+          const chunkPath = path.join(tempDir, chunkFile);
+          const dataStream = fs.createReadStream(chunkPath);
+          await new Promise<void>((resolve, reject) => {
+            dataStream.pipe(writeStream, { end: false });
+            dataStream.on("end", resolve);
+            dataStream.on("error", reject);
+          });
+        }
+        writeStream.end();
+        
+
+        await new Promise<void>((resolve, reject) => {
+          writeStream.on("finish", resolve);
+          writeStream.on("error", reject);
+        });
+
+        // const readStream=fs.createReadStream(mergedFilePath);
+        // readStream.on("end",async()=>{
+  
+        // });
+        // console.log(fs.statSync(mergedFilePath));
+        
+        await ftp?.put(mergedFilePath,toPath);
+        this.releaseFtp(ftp);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        res.send(ResponseCreator.success(null,`Upload ${fileName} finished`));
+
+      }catch(err){
+        res.send(ResponseCreator.error(null,`Upload ${fileName} error`));
+      }
+    });
+
   }
+
 
 }

@@ -4,6 +4,7 @@ import request from "../utils/request/request"
 import { FTP_REQUEST_PATHS } from "../../public/utils/requests";
 import { AxiosResponse } from "axios";
 import { fetchStreamDownload } from "../utils/request/fetchStreamDownload";
+import streamUpload from "../utils/request/streamUpload";
 
 const {BASE}=FTP_REQUEST_PATHS;
 
@@ -86,4 +87,13 @@ export function rename(params:{from:string,to:string}){
         method:"POST",
         params
     }) as Promise<Response<null>>;
+}
+
+export function upload(file:File,toPath:string){
+    return streamUpload(
+        createUrl(BASE,FTP_REQUEST_PATHS.UPLOAD),
+        createUrl(BASE,FTP_REQUEST_PATHS.COMPLETE_UPLOAD),
+        file,
+        toPath
+    );
 }

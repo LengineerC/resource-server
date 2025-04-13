@@ -7,3 +7,4 @@ node_modules/
 __test__/download/
 
 config.json
+.temp/

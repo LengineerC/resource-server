@@ -7,11 +7,13 @@ import {
   faFolderOpen,
   faFolderPlus,
   faTrashCan,
+  faUpload,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { LoadingOutlined } from "@ant-design/icons";
 import { FTPResource, Response } from "../../../public/types/common";
 import { Button, Image, Input, Modal, Popover, Spin } from "antd";
-import { deleteDir, deleteFile, download, ls, mkdir, preview, rename } from "../../services/ftpService";
+import { deleteDir, deleteFile, download, ls, mkdir, preview, rename, upload } from "../../services/ftpService";
 import useMessage from "antd/es/message/useMessage";
 import RESPONSE_CODE from "../../../public/utils/codes";
 import ResourceContainer from "./ResourceContainer";
@@ -20,6 +22,7 @@ import { APPLICATION_TYPE } from "../../utils/enums";
 import { INVALID_RESOURCE_NAME_PATTERN } from "../../utils/patterns";
 
 import "./index.scss";
+import { useAppSelector } from "../../redux/hooks";
 
 // const testData:FTPResource[]=[                                                                                                                                              
 //   {
@@ -312,6 +315,7 @@ import "./index.scss";
 
 export default function FileExplorer() {
   const [messageApi,contextHolder]=useMessage();
+  const {config}=useAppSelector(s=>s.connect)
 
   const [path,setPath]=useState<string>(".");
   const [resources,setResources]=useState<FTPResource[]>([]);
@@ -332,8 +336,11 @@ export default function FileExplorer() {
   const [showRenameModal,setShowRenameModal]=useState<boolean>(false);
   const [renameInputValue,setRenameInputValue]=useState<string>("");
 
+  const [uploading,setUploading]=useState<boolean>(false);
+
   const mainRef=useRef<HTMLDivElement|null>(null);
   const contextMenuRef=useRef<HTMLDivElement|null>(null);
+  const uploadInputRef=useRef<HTMLInputElement|null>(null);
 
   const getList=async()=>{
     setLoading(true);
@@ -356,7 +363,9 @@ export default function FileExplorer() {
   }
 
   useEffect(()=>{
-    getList();
+    if(config){
+      getList();
+    }
 
   },[path]);
 
@@ -775,6 +784,29 @@ export default function FileExplorer() {
     }
   }
 
+  const handleUploadClick=()=>{
+    uploadInputRef.current?.click();
+  }
+
+  const handleUploadInputChange=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    setUploading(true);
+    const files=e.target.files;
+    // console.log(files);
+    if(!files || files.length===0) return;
+    try{
+      for(let i=0;i<files.length;i++){
+        const toPath=getResourcePath(files[i].name);
+        const response=await upload(files[i],toPath);
+        messageApi.success(response.msg);
+      }
+      await getList();
+    }catch(err){
+      messageApi.error(`Upload error: ${err}`)
+    }
+    e.target.value="";
+    setUploading(false);
+  }
+
   return (
     <div
       className="file-exploerer-main"
@@ -973,6 +1005,37 @@ export default function FileExplorer() {
               className={`btn`}
               onClick={()=>setShowMkdirModal(true)}
             />
+
+            {
+              uploading ?(
+                <Spin 
+                  indicator={<LoadingOutlined spin />} 
+                  style={{
+                    margin:"0 10px"
+                  }}
+                  size="small" 
+                />
+              )
+              :(
+                <>
+                <FontAwesomeIcon
+                  icon={faUpload}
+                  className="btn"
+                  onClick={handleUploadClick}
+                />
+                <input 
+                  ref={uploadInputRef}
+                  type="file"
+                  multiple
+                  style={{
+                    display:"none"
+                  }}
+                  onChange={handleUploadInputChange}
+                />
+                </>
+              )
+   
+            }
           </div>
         </div>
         

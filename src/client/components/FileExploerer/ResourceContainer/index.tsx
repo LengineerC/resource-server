@@ -177,7 +177,7 @@ export default function ResourceContainer(props:Props) {
               color="primary"
               onClick={onDownloadClick}
             >
-              Downlaod
+              Download
             </Button>
           }
 
