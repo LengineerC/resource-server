@@ -323,8 +323,8 @@ export default class FTPController{
         });
 
         writeStream.on("error",err=>{
-          logger.error(`${uploadId}: upload ${chunkIndex} error:`,err.message);
-          res.status(500).json(ResponseCreator.error(null, err.message));
+          logger.error(`${uploadId}: upload ${chunkIndex} error:`,err);
+          res.status(500).json(ResponseCreator.error(null,  `${uploadId}: upload ${chunkIndex} error`));
         });
 
         // res.send(ResponseCreator.success(null,`Uploaded chunk ${chunkIndex}`));

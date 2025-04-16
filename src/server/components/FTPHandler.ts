@@ -22,11 +22,11 @@ export default class FTPHandler{
             try{
                 const ftp=new FTP(this.option);
                 ftp.on("error",err => {
-                    reject(new Error(`Error to connect FTP server: ${err.message}`));
+                    reject(new Error(`Error to connect FTP server: ${err}`));
                 });
     
                 ftp.on("timeout",err=>{
-                    reject(new Error(`Connect timeout: ${err.message}`));
+                    reject(new Error(`Connect timeout: ${err}`));
                 });
     
                 ftp.on("connect",()=>{
@@ -46,8 +46,8 @@ export default class FTPHandler{
             this.ftp?.keepAlive(60000);
             return ResponseCreator.success(null,"Connected!");
         }catch(err:any){
-            logger.error("Failed to connect",err.message);
-            return ResponseCreator.error(null,err.message);
+            logger.error("Failed to connect",err);
+            return ResponseCreator.error(null,err);
         }
     }
 
@@ -150,7 +150,7 @@ export default class FTPHandler{
         return new Promise((resolve,reject)=>{
             this.ftp?.get(path,(err,data)=>{
                 if(err){
-                    logger.error(`Get ${path} error:`,err.message);
+                    logger.error(`Get ${path} error:`,err);
                     reject(err);
                 }
 

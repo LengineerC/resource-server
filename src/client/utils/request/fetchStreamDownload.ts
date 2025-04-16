@@ -93,7 +93,7 @@ export async function fetchStreamDownload(
     console.error('Download failed:', err);
     return { 
       success: false,
-      error: err.message || 'Unknown error'
+      error: err || 'Unknown error'
     };
   }
 }
