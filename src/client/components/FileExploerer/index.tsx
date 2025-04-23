@@ -10,308 +10,20 @@ import {
   faUpload,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { LoadingOutlined } from "@ant-design/icons";
+import { DownOutlined, LoadingOutlined } from "@ant-design/icons";
 import { FTPResource, Response } from "../../../public/types/common";
-import { Button, Image, Input, Modal, Popover, Spin } from "antd";
+import { Button, Dropdown, Image, Input, MenuProps, Modal, Popover, Space, Spin, Typography } from "antd";
 import { deleteDir, deleteFile, download, ls, mkdir, preview, rename, upload } from "../../services/ftpService";
 import useMessage from "antd/es/message/useMessage";
 import RESPONSE_CODE from "../../../public/utils/codes";
 import ResourceContainer from "./ResourceContainer";
 import { FILE_TYPE, FTP_RESOURCE_TYPE } from "../../../public/utils/enums";
-import { APPLICATION_TYPE } from "../../utils/enums";
+import { APPLICATION_TYPE, SORT_RULES } from "../../utils/enums";
 import { INVALID_RESOURCE_NAME_PATTERN } from "../../utils/patterns";
 
 import "./index.scss";
 import { useAppSelector } from "../../redux/hooks";
 
-// const testData:FTPResource[]=[                                                                                                                                              
-//   {
-//     name: '12.12.The.Day.2023.1080p.WATCHA.WEB-DL.H264.AAC5.1-ADWeb[PianYuan]',
-//     type: 1,
-//     time: 1722355200000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'Dr.コトー診療所',
-//     type: 1,
-//     time: 1729925940000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'Guardians Of The Galaxy Vol. 2 (2017) [Chris Pratt] 1080p H264 DolbyD 5.1 & nickarad',
-//     type: 1,
-//     time: 1722355200000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'Kamen.Rider.BLACK.SUN.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-0N0R3D1K31D0',
-//     type: 1,
-//     time: 1722355200000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'True.Lies.1994.1080p.WEBRip.DD5.1.x264-NTb',
-//     type: 1,
-//     time: 1722355200000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '[HI-Res][220406][ALBUM][森口博子][GUNDAM SONG COVERS 3][24Bit／96KHz][FLAC]',
-//     type: 1,
-//     time: 1738804920000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '[Nekomoe kissaten][Dandadan][01-12][1080p][JPSC]',
-//     type: 1,
-//     time: 1738805100000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: "[PoM&WM]BanG Dream!It's MyGO!!!!![01-13Fin]",
-//     type: 1,
-//     time: 1729926300000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'music2',
-//     type: 1,
-//     time: 1722528000000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: 'vegaspost18',
-//     type: 1,
-//     time: 1730016600000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '【游戏安装码在这里】.txt',
-//     type: 0,
-//     time: 1711382400000,
-//     size: '1915',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '侠盗猎车手圣安地列斯安装包.exe',
-//     type: 0,
-//     time: 1711641600000,
-//     size: '4158819537',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '夸克网盘下载',
-//     type: 1,
-//     time: 1722528000000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '小何的music',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '川北医学院',
-//     type: 1,
-//     time: 1722528000000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '手机音乐',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '未看',
-//     type: 1,
-//     time: 1738805460000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '歌词适配',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '泰迪熊',
-//     type: 1,
-//     time: 1738805400000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '漫音社',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '白い巨塔.白色巨塔.1966.720p.中日字幕-树屋字幕组V2.mp4',
-//     type: 0,
-//     time: 1704384000000,
-//     size: '1686624636',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '祝某的music',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '4096',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '科研',
-//     type: 1,
-//     time: 1722355200000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '蔚蓝档案枪战小游戏（兰术制作）(2)',
-//     type: 1,
-//     time: 1730016600000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '车载U盘音乐',
-//     type: 1,
-//     time: 1723996800000,
-//     size: '81920',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   },
-//   {
-//     name: '鬼子来了(DVD国语中字).Devils.on.the.Doorstep.2000.DVD-1080p.X264.AAC.CHS-UUMp4',
-//     type: 1,
-//     time: 1722528000000,
-//     size: '0',
-//     owner: '0',
-//     group: '0',
-//     userPermissions: { read: true, write: true, exec: true },
-//     groupPermissions: { read: true, write: true, exec: true },
-//     otherPermissions: { read: true, write: true, exec: true }
-//   }
-// ]
 
 export default function FileExplorer() {
   const [messageApi,contextHolder]=useMessage();
@@ -319,7 +31,6 @@ export default function FileExplorer() {
 
   const [path,setPath]=useState<string>(".");
   const [resources,setResources]=useState<FTPResource[]>([]);
-  // const [resources,setResources]=useState<FTPResource[]>(testData);
   const [selectedResources,setSelectedResources]=useState<FTPResource[]>([]);
   const [currentResource,setCurrentResource]=useState<FTPResource|null>(null);
   const [loading,setLoading]=useState<boolean>(false);
@@ -335,12 +46,61 @@ export default function FileExplorer() {
   const [showDeletePopover,setShowDeletePopover]=useState<boolean>(false);
   const [showRenameModal,setShowRenameModal]=useState<boolean>(false);
   const [renameInputValue,setRenameInputValue]=useState<string>("");
-
   const [uploading,setUploading]=useState<boolean>(false);
+  const [sortRule,setSortRule]=useState<SORT_RULES>(SORT_RULES.TIME_DESC);
 
   const mainRef=useRef<HTMLDivElement|null>(null);
   const contextMenuRef=useRef<HTMLDivElement|null>(null);
   const uploadInputRef=useRef<HTMLInputElement|null>(null);
+
+  const sortItems:MenuProps["items"]=[
+    {
+      key:SORT_RULES.TIME_ASC,
+      label:"Time asc",
+      onClick:()=>setSortRule(SORT_RULES.TIME_ASC),
+    },
+    {
+      key:SORT_RULES.TIME_DESC,
+      label:"Time desc",
+      onClick:()=>setSortRule(SORT_RULES.TIME_DESC),
+    },
+    {
+      key:SORT_RULES.SIZE_ASC,
+      label:"Size asc",
+      onClick:()=>setSortRule(SORT_RULES.SIZE_ASC),
+    },
+    {
+      key:SORT_RULES.SIZE_DESC,
+      label:"Size desc",
+      onClick:()=>setSortRule(SORT_RULES.SIZE_DESC),
+    },
+  ];
+
+  const getSortFunc=()=>{
+    switch(sortRule){
+      case SORT_RULES.SIZE_ASC:
+        return (a:FTPResource,b:FTPResource)=>Number(a.size)-Number(b.size);
+      case SORT_RULES.SIZE_DESC:
+        return (a:FTPResource,b:FTPResource)=>Number(b.size)-Number(a.size);
+      case SORT_RULES.TIME_ASC:
+        return ((a:FTPResource,b:FTPResource)=>a.time-b.time);
+      case SORT_RULES.TIME_DESC:
+        return ((a:FTPResource,b:FTPResource)=>b.time-a.time);
+    }
+  }
+
+  useEffect(()=>{
+    if(resources.length>0){
+      const directories=resources
+        .filter(item=>item.type===FTP_RESOURCE_TYPE.DIR)
+        .sort(getSortFunc());
+      const files=resources
+        .filter(item=>item.type===FTP_RESOURCE_TYPE.FILE)
+        .sort(getSortFunc());
+
+      setResources([...directories,...files]);
+    }
+  },[sortRule]);
 
   const getList=async()=>{
     setLoading(true);
@@ -350,7 +110,14 @@ export default function FileExplorer() {
     .then(res=>{
       const {code,data}=res;
       if(code===RESPONSE_CODE.SUCCESS){
-        setResources(data);
+        const directories=data
+          .filter(item=>item.type===FTP_RESOURCE_TYPE.DIR)
+          .sort(getSortFunc());
+        const files=data
+          .filter(item=>item.type===FTP_RESOURCE_TYPE.FILE)
+          .sort(getSortFunc());
+
+        setResources([...directories,...files]);
       }else{
         messageApi.error("Failed to fetched: "+path);
       }
@@ -1036,6 +803,21 @@ export default function FileExplorer() {
               )
    
             }
+
+            <Dropdown
+              menu={{
+                items: sortItems,
+                selectable: true,
+                defaultSelectedKeys:[SORT_RULES.TIME_DESC.toString()]
+              }}
+            >
+              <Typography.Link>
+                <Space>
+                  Sort
+                  <DownOutlined />
+                </Space>
+              </Typography.Link>
+            </Dropdown>
           </div>
         </div>
         
