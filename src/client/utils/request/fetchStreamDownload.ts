@@ -1,4 +1,4 @@
-import { createWriteStream } from 'streamsaver';
+import streamSaver from 'streamsaver';
 import { BASE_URL } from "./ip";
 import createUrl from '../../../public/functions/createUrl';
 
@@ -15,7 +15,12 @@ type FetchOption = {
 };
 
 if (typeof window !== 'undefined') {
-  window.streamSaver.mitm=createUrl(BASE_URL,"streamsaver/mitm.html");
+  Object.defineProperty(streamSaver, 'mitm', {
+    value: createUrl(BASE_URL,"streamsaver/mitm.html"),
+    writable: false,
+    enumerable: true,
+    configurable: true
+  });
 }
 
 export async function fetchStreamDownload(
@@ -60,7 +65,7 @@ export async function fetchStreamDownload(
         )
       : `download-${Date.now()}`);
 
-    const fileStream = createWriteStream(finalFilename, {
+    const fileStream = streamSaver.createWriteStream(finalFilename, {
       size: response.headers.get('Content-Length') 
         ? Number(response.headers.get('Content-Length'))
         : undefined
